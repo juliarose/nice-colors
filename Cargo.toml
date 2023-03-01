@@ -1,0 +1,15 @@
+[package]
+name = "nice-colors"
+description = "For converting colors to and from hexadecimal and blending colors."
+version = "0.1.0"
+edition = "2021"
+authors = ["Julia"]
+homepage = "https://github.com/juliarose/nice-colors"
+repository = "https://github.com/juliarose/nice-colors"
+license = "MIT"
+keywords = ["color", "css", "hexadecimal"]
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
