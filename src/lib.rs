@@ -8,10 +8,23 @@ const SLICE_LENGTH: usize = 3;
 pub struct Color(pub [Value; SLICE_LENGTH]);
 
 impl Color {
+    /// Creates a new [`Color`].
     pub fn new(r: Value, g: Value, b: Value) -> Self {
         Self([r, g, b])
     }
     
+    /// Maps each value in this color.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// let red = Color::new(255, 0, 0);
+    /// let mapped = red.map(|c| c / 2);
+    /// 
+    /// assert_eq!(mapped, Color::new(127, 0, 0));
+    /// ```
     pub fn map<F>(&self, f: F) -> Self
     where
         F: Fn(Value) -> Value,
@@ -25,7 +38,20 @@ impl Color {
         mapped
     }
     
-    fn map_with<F>(&self, other: Self, f: F) -> Self
+    /// Maps each value in this color with another color.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// let red = Color::new(255, 0, 0);
+    /// let blue = Color::new(0, 0, 255);
+    /// let mapped = red.map_with(blue, |a, b| std::cmp::max(a, b));
+    /// 
+    /// assert_eq!(mapped, Color::new(255, 0, 255));
+    /// ```
+    pub fn map_with<F>(&self, other: Self, f: F) -> Self
     where
         F: Fn(Value, Value) -> Value,
     {
@@ -38,7 +64,7 @@ impl Color {
         mapped
     }
     
-    /// Blends two colors
+    /// Blends two colors.
     /// 
     /// # Examples
     /// 
