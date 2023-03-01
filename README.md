@@ -1,6 +1,6 @@
 # nice-colors
 
-For converting colors to and from hexadecimal and blending colors.
+For converting colors to and from hexadecimal, and for blending colors.
 
 ## Usage
 

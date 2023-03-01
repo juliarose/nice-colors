@@ -1,6 +1,6 @@
 [package]
 name = "nice-colors"
-description = "For converting colors to and from hexadecimal and blending colors."
+description = "For converting colors to and from hexadecimal, and for blending colors."
 version = "0.1.0"
 edition = "2021"
 authors = ["Julia"]
