@@ -2,8 +2,10 @@ use std::fmt;
 
 type Value = u8;
 
+const SLICE_LENGTH: usize = 3;
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default, Ord, PartialOrd)]
-pub struct Color(pub [Value; 3]);
+pub struct Color(pub [Value; SLICE_LENGTH]);
 
 impl Color {
     pub fn new(r: Value, g: Value, b: Value) -> Self {
@@ -16,7 +18,7 @@ impl Color {
     {
         let mut mapped = Color::default();
         
-        for i in 0..3 {
+        for i in 0..SLICE_LENGTH {
             mapped.0[i] = f(self.0[i]);
         }
         
@@ -29,7 +31,7 @@ impl Color {
     {
         let mut mapped = Color::default();
         
-        for i in 0..3 {
+        for i in 0..SLICE_LENGTH {
             mapped.0[i] = f(self.0[i], other.0[i]);
         }
         
@@ -144,7 +146,7 @@ impl Color {
         let mut color = Color::default();
         
         if len == 3 {
-            for i in 0..3 {
+            for i in 0..SLICE_LENGTH {
                 let c = &s[i..(i + 1)];
                 let c = [c, c].concat();
                 
@@ -155,7 +157,7 @@ impl Color {
         }
         
         if len == 6 {
-            for i in 0..3 {
+            for i in 0..SLICE_LENGTH {
                 let ii = i * 2;
                 
                 color.0[i] = u8::from_str_radix(&s[ii..(ii + 2)], 16).ok()?;
@@ -170,15 +172,15 @@ impl Color {
 
 impl IntoIterator for Color {
     type Item = Value;
-    type IntoIter = std::array::IntoIter<Value, 3>;
+    type IntoIter = std::array::IntoIter<Value, SLICE_LENGTH>;
     
     fn into_iter(self) -> Self::IntoIter {
         IntoIterator::into_iter(self.0)
     }
 }
 
-impl From<[Value; 3]> for Color {
-    fn from(value: [Value; 3]) -> Self {
+impl From<[Value; SLICE_LENGTH]> for Color {
+    fn from(value: [Value; SLICE_LENGTH]) -> Self {
         Self(value)
     }
 }
