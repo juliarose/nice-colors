@@ -13,6 +13,21 @@ impl Color {
         Self([r, g, b])
     }
     
+    /// Gets the red color value.
+    pub fn red(&self) -> Value {
+        self.0[0]
+    }
+
+    /// Gets the green color value.
+    pub fn green(&self) -> Value {
+        self.0[1]
+    }
+
+    /// Gets the blue color value.
+    pub fn blue(&self) -> Value {
+        self.0[2]
+    }
+    
     /// Maps each value in this color.
     /// 
     /// # Examples
