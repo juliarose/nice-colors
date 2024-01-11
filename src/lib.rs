@@ -1,16 +1,33 @@
 use std::fmt;
+use std::hash::Hash;
 
 type Value = u8;
 
 const SLICE_LENGTH: usize = 3;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Default, Ord, PartialOrd)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default, Ord, PartialOrd, Hash)]
 pub struct Color(pub [Value; SLICE_LENGTH]);
 
 impl Color {
     /// Creates a new [`Color`].
     pub fn new(r: Value, g: Value, b: Value) -> Self {
         Self([r, g, b])
+    }
+    
+    /// Converts a decimal color value into a color.
+    /// 
+    /// # Examples
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// let color = Color::from_decimal(6579300);
+    /// 
+    /// assert_eq!(color, Color::new(100, 100, 100));
+    /// ```
+    pub fn from_decimal(decimal: i32) -> Self {
+        let bytes = decimal.to_le_bytes();
+        
+        Self([bytes[0], bytes[1], bytes[2]])
     }
     
     /// Gets the red color value.
@@ -108,6 +125,21 @@ impl Color {
             
             (a + b).round() as u8
         })
+    }
+    
+    /// Converts this color into a decimal color value.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// let color = Color::new(100, 100, 100);
+    ///     
+    /// assert_eq!(color.to_decimal(), 6579300);
+    /// ```
+    pub fn to_decimal(&self) -> i32 {
+        i32::from_le_bytes([self.0[0], self.0[1], self.0[2], 0])
     }
     
     /// Converts this color into a hexadecimal color string.
@@ -226,13 +258,37 @@ impl From<[Value; SLICE_LENGTH]> for Color {
     }
 }
 
+impl From<&[Value; SLICE_LENGTH]> for Color {
+    fn from(value: &[Value; SLICE_LENGTH]) -> Self {
+        Self::from(*value)
+    }
+}
+
+impl From<i32> for Color {
+    fn from(value: i32) -> Self {
+        Self::from_decimal(value)
+    }
+}
+
+impl From<&i32> for Color {
+    fn from(value: &i32) -> Self {
+        Self::from_decimal(*value)
+    }
+}
+
+impl Into<i32> for Color {
+    fn into(self) -> i32 {
+        self.to_decimal()
+    }
+}
+
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.to_hex())
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default, Ord, PartialOrd)]
 pub struct ColorFromStrError;
 
 impl fmt::Display for ColorFromStrError {
@@ -303,5 +359,36 @@ mod tests {
         let color = Color::from_str("FF0000").unwrap();
         
         assert_eq!(color, Color::new(255, 0, 0));
+    }
+    
+    #[test]
+    fn converts_to_decimal() {
+        let color = Color::new(100, 100, 100);
+        
+        assert_eq!(color.to_decimal(), 6579300);
+    }
+    
+    #[test]
+    fn converts_from_decimal() {
+        let color = Color::from_decimal(6579300);
+        
+        assert_eq!(color, Color::new(100, 100, 100));
+    }
+    
+    #[test]
+    fn converts_to_from_decimal() {
+        let color = Color::new(100, 100, 100);
+        let decimal = color.to_decimal();
+        let color = Color::from_decimal(decimal);
+        
+        assert_eq!(color, Color::new(100, 100, 100));
+    }
+    
+    #[test]
+    fn converts_to_i32() {
+        let color = Color::new(100, 100, 100);
+        let decimal: i32 = color.into();
+        
+        assert_eq!(decimal, 6579300);
     }
 }
