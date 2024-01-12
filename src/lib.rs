@@ -42,7 +42,6 @@ impl Color {
     /// Maps each value in this color.
     /// 
     /// # Examples
-    /// 
     /// ```
     /// use nice_colors::Color;
     /// 
@@ -67,7 +66,6 @@ impl Color {
     /// Maps each value in this color with another color.
     /// 
     /// # Examples
-    /// 
     /// ```
     /// use nice_colors::Color;
     /// 
@@ -93,7 +91,6 @@ impl Color {
     /// Blends two colors.
     /// 
     /// # Examples
-    /// 
     /// ```
     /// use nice_colors::Color;
     /// 
@@ -139,7 +136,6 @@ impl Color {
     /// Converts this color into a decimal color value.
     /// 
     /// # Examples
-    /// 
     /// ```
     /// use nice_colors::Color;
     /// 
@@ -154,7 +150,6 @@ impl Color {
     /// Converts this color into a hexadecimal color string.
     /// 
     /// # Examples
-    /// 
     /// ```
     /// use nice_colors::Color;
     /// 
@@ -172,7 +167,6 @@ impl Color {
     /// Converts this color into an rgba color string.
     /// 
     /// # Examples
-    /// 
     /// ```
     /// use nice_colors::Color;
     /// 
@@ -200,7 +194,6 @@ impl Color {
     /// Converts this color into an rgb color string.
     /// 
     /// # Examples
-    /// 
     /// ```
     /// use nice_colors::Color;
     /// 
@@ -219,7 +212,6 @@ impl Color {
     /// Converts this color from a hexadecimal color string.
     /// 
     /// # Examples
-    /// 
     /// ```
     /// use nice_colors::Color;
     /// 
@@ -259,6 +251,16 @@ impl Color {
         }
         
         None
+    }
+    
+    /// Gets the inner slice of this color.
+    pub fn as_slice(&self) -> &[Value; SLICE_LENGTH] {
+        &self.0
+    }
+    
+    /// Converts the inner slice of this color into a vector.
+    pub fn to_vec(&self) -> Vec<Value> {
+        self.0.to_vec()
     }
 }
 
@@ -307,21 +309,11 @@ impl fmt::Display for Color {
     }
 }
 
-/// An error that occurs when parsing a color from a string.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Default, Ord, PartialOrd)]
-pub struct ColorFromStrError;
-
-impl fmt::Display for ColorFromStrError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Not a valid color string.")
-    }
-}
-
 impl std::str::FromStr for Color {
-    type Err = ColorFromStrError;
+    type Err = &'static str;
     
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_hex(s).ok_or(ColorFromStrError)
+        Self::from_hex(s).ok_or("Not a valid color string.")
     }
 }
 
