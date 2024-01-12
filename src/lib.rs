@@ -1,5 +1,6 @@
 use std::fmt;
 use std::hash::Hash;
+use std::fmt::Write;
 
 type Value = u8;
 type DecimalValue = i32;
@@ -156,8 +157,10 @@ impl Color {
     pub fn to_hex(&self) -> String {
         self
             .into_iter()
-            .map(|v| format!("{v:02X}"))
-            .collect()
+            .fold(String::new(),|mut output, b| {
+                let _ = write!(output, "{b:02X}");
+                output
+            })
     }
     
     /// Converts this color into an rgba color string.
@@ -283,12 +286,6 @@ impl From<DecimalValue> for Color {
 impl From<&DecimalValue> for Color {
     fn from(value: &DecimalValue) -> Self {
         Self::from_decimal(*value)
-    }
-}
-
-impl Into<DecimalValue> for Color {
-    fn into(self) -> DecimalValue {
-        self.to_decimal()
     }
 }
 
