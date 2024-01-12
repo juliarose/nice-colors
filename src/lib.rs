@@ -2,9 +2,11 @@ use std::fmt;
 use std::hash::Hash;
 
 type Value = u8;
+type DecimalValue = i32;
 
 const SLICE_LENGTH: usize = 3;
 
+/// A color containing values for red, green, and blue.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default, Ord, PartialOrd, Hash)]
 pub struct Color(pub [Value; SLICE_LENGTH]);
 
@@ -24,25 +26,10 @@ impl Color {
     /// 
     /// assert_eq!(color, Color::new(100, 100, 100));
     /// ```
-    pub fn from_decimal(decimal: i32) -> Self {
+    pub fn from_decimal(decimal: DecimalValue) -> Self {
         let bytes = decimal.to_le_bytes();
         
         Self([bytes[0], bytes[1], bytes[2]])
-    }
-    
-    /// Gets the red color value.
-    pub fn red(&self) -> Value {
-        self.0[0]
-    }
-
-    /// Gets the green color value.
-    pub fn green(&self) -> Value {
-        self.0[1]
-    }
-
-    /// Gets the blue color value.
-    pub fn blue(&self) -> Value {
-        self.0[2]
     }
     
     /// Maps each value in this color.
@@ -110,7 +97,7 @@ impl Color {
     /// 
     /// assert_eq!(blended, Color::new(128, 0, 128));
     /// ```
-    pub fn blend(&self, other: Color, amount: f32) -> Color {
+    pub fn blend(&self, other: Color, amount: f32) -> Self {
         if amount >= 1.0 {
             return other;
         }
@@ -127,6 +114,21 @@ impl Color {
         })
     }
     
+    /// Gets the red color value.
+    pub fn red(&self) -> Value {
+        self.0[0]
+    }
+    
+    /// Gets the green color value.
+    pub fn green(&self) -> Value {
+        self.0[1]
+    }
+    
+    /// Gets the blue color value.
+    pub fn blue(&self) -> Value {
+        self.0[2]
+    }
+    
     /// Converts this color into a decimal color value.
     /// 
     /// # Examples
@@ -138,7 +140,7 @@ impl Color {
     ///     
     /// assert_eq!(color.to_decimal(), 6579300);
     /// ```
-    pub fn to_decimal(&self) -> i32 {
+    pub fn to_decimal(&self) -> DecimalValue {
         i32::from_le_bytes([self.0[0], self.0[1], self.0[2], 0])
     }
     
@@ -168,10 +170,18 @@ impl Color {
     /// assert_eq!(Color::new(255, 0, 0).to_rgba(0.5), "rgba(255,0,0,0.5)");
     /// ```
     pub fn to_rgba(&self, alpha: f32) -> String {
+        let alpha = if alpha > 1.0 {
+            1.0
+        } else if alpha < 0.0 {
+            0.0
+        } else {
+            alpha
+        };
         let values = self
             .into_iter()
             .map(|v| v.to_string())
-            .chain([print_float(alpha)])
+            // Round alpha to 3 decimal places.
+            .chain([((alpha * 1_000.0).round() / 1_000.0).to_string()])
             .collect::<Vec<_>>()
             .join(",");
         
@@ -231,9 +241,9 @@ impl Color {
         
         if len == 6 {
             for i in 0..SLICE_LENGTH {
-                let ii = i * 2;
+                let j = i * 2;
                 
-                color.0[i] = u8::from_str_radix(&s[ii..(ii + 2)], 16).ok()?;
+                color.0[i] = u8::from_str_radix(&s[j..(j + 2)], 16).ok()?;
             }
             
             return Some(color);
@@ -264,20 +274,20 @@ impl From<&[Value; SLICE_LENGTH]> for Color {
     }
 }
 
-impl From<i32> for Color {
-    fn from(value: i32) -> Self {
+impl From<DecimalValue> for Color {
+    fn from(value: DecimalValue) -> Self {
         Self::from_decimal(value)
     }
 }
 
-impl From<&i32> for Color {
-    fn from(value: &i32) -> Self {
+impl From<&DecimalValue> for Color {
+    fn from(value: &DecimalValue) -> Self {
         Self::from_decimal(*value)
     }
 }
 
-impl Into<i32> for Color {
-    fn into(self) -> i32 {
+impl Into<DecimalValue> for Color {
+    fn into(self) -> DecimalValue {
         self.to_decimal()
     }
 }
@@ -288,6 +298,7 @@ impl fmt::Display for Color {
     }
 }
 
+/// An error that occurs when parsing a color from a string.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default, Ord, PartialOrd)]
 pub struct ColorFromStrError;
 
@@ -303,10 +314,6 @@ impl std::str::FromStr for Color {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_hex(s).ok_or(ColorFromStrError)
     }
-}
-
-fn print_float(amount: f32) -> String {
-    ((amount * 1_000.0).round() / 1_000.0).to_string()
 }
 
 #[cfg(test)]
