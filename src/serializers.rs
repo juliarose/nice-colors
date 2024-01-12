@@ -305,33 +305,33 @@ mod tests {
         assert_eq!(color, Color::new(255, 0, 0));
     }
     
-    // #[test]
-    // fn test_all_serializers() {
-    //     #[derive(Debug, Clone, Serialize, Deserialize)]
-    //     struct Colors {
-    //         #[serde(with = "hex")]
-    //         hex: Color,
-    //         #[serde(with = "rgb")]
-    //         rgb: Color,
-    //         #[serde(with = "rgba")]
-    //         rgba: (Color, f32),
-    //         #[serde(with = "hex_option")]
-    //         hex_option: Option<Color>,
-    //         #[serde(with = "rgb_option")]
-    //         rgb_option: Option<Color>,
-    //         #[serde(with = "rgba_option")]
-    //         rgba_option: Option<(Color, f32)>,
-    //     }
+    #[test]
+    fn test_all_serializers() {
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        struct Colors {
+            #[serde(with = "hex")]
+            hex: Color,
+            #[serde(with = "rgb")]
+            rgb: Color,
+            #[serde(with = "rgba")]
+            rgba: (Color, f32),
+            #[serde(with = "hex_option")]
+            hex_option: Option<Color>,
+            #[serde(with = "rgb_option")]
+            rgb_option: Option<Color>,
+            #[serde(with = "rgba_option")]
+            rgba_option: Option<(Color, f32)>,
+        }
         
-    //     let s = serde_json::to_string(&Colors {
-    //         hex: Color::new(255, 0, 0),
-    //         rgb: Color::new(255, 0, 0),
-    //         rgba: (Color::new(255, 0, 0), 0.5),
-    //         hex_option: Some(Color::new(255, 0, 0)),
-    //         rgb_option: Some(Color::new(255, 0, 0)),
-    //         rgba_option: Some((Color::new(255, 0, 0), 0.5)),
-    //     }).unwrap();
+        let s = serde_json::to_string(&Colors {
+            hex: Color::new(255, 0, 0),
+            rgb: Color::new(255, 0, 0),
+            rgba: (Color::new(255, 0, 0), 0.5),
+            hex_option: Some(Color::new(255, 0, 0)),
+            rgb_option: Some(Color::new(255, 0, 0)),
+            rgba_option: Some((Color::new(255, 0, 0), 0.5)),
+        }).unwrap();
         
-    //     assert_eq!(s, "{\"hex\":\"#FF0000\",\"rgb\":\"rgb(255,0,0)\",\"rgba\":\"rgba(255,0,0,0.5)\",\"hex_option\":\"#FF0000\",\"rgb_option\":\"rgb(255,0,0)\",\"rgba_option\":\"rgba(255,0,0,0.5)\"}");
-    // }
+        assert_eq!(s, "{\"hex\":\"#FF0000\",\"rgb\":\"rgb(255,0,0)\",\"rgba\":\"rgba(255,0,0,0.5)\",\"hex_option\":\"#FF0000\",\"rgb_option\":\"rgb(255,0,0)\",\"rgba_option\":\"rgba(255,0,0,0.5)\"}");
+    }
 }

@@ -7,7 +7,7 @@
 
 #![warn(missing_docs)]
 
-// #[cfg(feature = "serde")]
+#[cfg(feature = "serde")]
 pub mod serializers;
 pub mod html;
 mod parse;
@@ -36,7 +36,7 @@ pub struct Color {
     pub g: Value,
 }
 
-// #[cfg(feature = "serde")]
+#[cfg(feature = "serde")]
 impl serde::Serialize for Color {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -46,7 +46,7 @@ impl serde::Serialize for Color {
     }
 }
 
-// #[cfg(feature = "serde")]
+#[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for Color {
     fn deserialize<D>(deserializer: D) -> Result<Color, D::Error>
     where
