@@ -289,6 +289,12 @@ impl From<&DecimalValue> for Color {
     }
 }
 
+impl From<Color> for DecimalValue {
+    fn from(value: Color) -> Self {
+        value.to_decimal()
+    }
+}
+
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.to_hex())
