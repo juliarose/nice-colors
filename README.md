@@ -1,6 +1,7 @@
 # nice-colors
 
-For converting colors to and from hexadecimal, and for blending colors.
+Provides a wrapper that represents a color with RGB color values along with methods commonly 
+used for manipulating, formatting, and parsing colors.
 
 ## Usage
 

@@ -1,37 +1,25 @@
 //! Serializers for the `Color` type.
 
-use crate::Color;
-use crate::html::from_html_color_name;
+use crate::{Color, ColorWithAlpha};
 use serde::de;
 use std::fmt;
 
 /// Deserializes from hexademical and rgb color strings.
-struct ColorVisitor;
+pub(crate) struct ColorVisitor;
 
 impl<'de> de::Visitor<'de> for ColorVisitor {
     type Value = Color;
     
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a hexadecimal or rgba color color string")
+        formatter.write_str("a hexadecimal, rgb, or hsl color string")
     }
     
     /// Deserializes from a color string.
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
     where
         E: de::Error,
     {
-        if v.starts_with("rgb") {
-            return Self::Value::from_rgb(v).ok_or(serde::de::Error::custom("Not a valid rgb color string."));
-        }
-        
-        match v.parse::<Self::Value>() {
-            Ok(value) => Ok(value),
-            Err(error) => if let Some(color) = from_html_color_name(v) {
-                Ok(color)
-            } else {
-                Err(serde::de::Error::custom(error))
-            },
-        }
+        s.parse::<Self::Value>().map_err(serde::de::Error::custom)
     }
 }
 
@@ -50,7 +38,7 @@ impl<'de> de::Visitor<'de> for OptionColorVisitor {
     where
         D: de::Deserializer<'de>,
     {
-        d.deserialize_str(ColorVisitor).map(Some)
+        d.deserialize_any(ColorVisitor).map(Some)
     }
     
     /// Deserializes from a color string.
@@ -74,7 +62,7 @@ impl<'de> de::Visitor<'de> for OptionColorVisitor {
 struct ColorAlphaVisitor;
 
 impl<'de> de::Visitor<'de> for ColorAlphaVisitor {
-    type Value = (Color, Option<f32>);
+    type Value = ColorWithAlpha;
     
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("a hexadecimal color string or none")
@@ -92,14 +80,9 @@ impl<'de> de::Visitor<'de> for ColorAlphaVisitor {
             return Ok((color, alpha));
         }
         
-        match v.parse::<Color>() {
-            Ok(value) => Ok((value, None)),
-            Err(error) => if let Some(color) = from_html_color_name(v) {
-                Ok((color, None))
-            } else {
-                Err(serde::de::Error::custom(error))
-            },
-        }
+        v.parse::<Color>().map_err(serde::de::Error::custom).and_then(|color| {
+            Ok((color, 1.0))
+        })
     }
 }
 
@@ -107,7 +90,7 @@ impl<'de> de::Visitor<'de> for ColorAlphaVisitor {
 struct OptionColorAlphaVisitor;
 
 impl<'de> de::Visitor<'de> for OptionColorAlphaVisitor {
-    type Value = Option<(Color, Option<f32>)>;
+    type Value = Option<(Color, f32)>;
     
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("a hexadecimal or rgba color string or none")
@@ -118,7 +101,7 @@ impl<'de> de::Visitor<'de> for OptionColorAlphaVisitor {
     where
         D: de::Deserializer<'de>,
     {
-        d.deserialize_str(ColorAlphaVisitor).map(Some)
+        d.deserialize_any(ColorAlphaVisitor).map(Some)
     }
     
     /// Deserializes from a color string.
@@ -250,19 +233,19 @@ pub mod rgba {
     use serde::{Serializer, Deserializer};
     
     /// Serializes a color to an rgba string.
-    pub fn serialize<T, S>(value: &(Color, Option<f32>), serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<T, S>(value: &(Color, f32), serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        if let Some(amount) = value.1 {
-            serializer.collect_str(&format!("{}", value.0.to_rgba(amount)))
+        if value.1 <= 1.0 {
+            serializer.collect_str(&format!("{}", value.0.to_rgba(value.1)))
         } else {
             serializer.collect_str(&format!("{}", value.0.to_rgb()))
         }
     }
     
     /// Deserializes a color from an rgba string.
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<(Color, Option<f32>), D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<(Color, f32), D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -274,17 +257,17 @@ pub mod rgba {
 /// supports hexadecimal color strings.
 pub mod rgba_option {
     use super::OptionColorAlphaVisitor;
-    use crate::Color;
+    use crate::{Color, ColorWithAlpha};
     use serde::{Serializer, Deserializer};
     
     /// Serializes a color to an rgba string.
-    pub fn serialize<T, S>(value: &Option<(Color, Option<f32>)>, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<T, S>(value: &Option<(Color, f32)>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         if let Some(value) = value {
-            if let Some(amount) = value.1 {
-                serializer.collect_str(&format!("{}", value.0.to_rgba(amount)))
+            if value.1 <= 1.0 {
+                serializer.collect_str(&format!("{}", value.0.to_rgba(value.1)))
             } else {
                 serializer.collect_str(&format!("{}", value.0.to_rgb()))
             }
@@ -294,7 +277,7 @@ pub mod rgba_option {
     }
     
     /// Deserializes a color from an rgba string.
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<(Color, Option<f32>)>, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<ColorWithAlpha>, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -304,8 +287,9 @@ pub mod rgba_option {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::Color;
-    // use serde::{Serialize, Deserialize};
+    use serde::{Serialize, Deserialize};
     
     #[test]
     fn test_hex_serialize() {
@@ -321,5 +305,35 @@ mod tests {
         let color = serde_json::from_str::<Color>("\"rgba(255,0,0,0.5)\"").unwrap();
         
         assert_eq!(color, Color::new(255, 0, 0));
+    }
+    
+    #[test]
+    fn test_all_serializers() {
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        struct Colors {
+            #[serde(with = "hex")]
+            hex: Color,
+            #[serde(with = "rgb")]
+            rgb: Color,
+            #[serde(with = "rgba")]
+            rgba: (Color, f32),
+            #[serde(with = "hex_option")]
+            hex_option: Option<Color>,
+            #[serde(with = "rgb_option")]
+            rgb_option: Option<Color>,
+            #[serde(with = "rgba_option")]
+            rgba_option: Option<(Color, f32)>,
+        }
+        
+        let s = serde_json::to_string(&Colors {
+            hex: Color::new(255, 0, 0),
+            rgb: Color::new(255, 0, 0),
+            rgba: (Color::new(255, 0, 0), 0.5),
+            hex_option: Some(Color::new(255, 0, 0)),
+            rgb_option: Some(Color::new(255, 0, 0)),
+            rgba_option: Some((Color::new(255, 0, 0), 0.5)),
+        }).unwrap();
+        
+        assert_eq!(s, "{\"hex\":\"#FF0000\",\"rgb\":\"rgb(255,0,0)\",\"rgba\":\"rgba(255,0,0,0.5)\",\"hex_option\":\"#FF0000\",\"rgb_option\":\"rgb(255,0,0)\",\"rgba_option\":\"rgba(255,0,0,0.5)\"}");
     }
 }

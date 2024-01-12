@@ -1,17 +1,23 @@
 //! # nice-colors
 //! 
-//! Provides a [`Color`] type that represents a color with RGB color values along with methods 
-//! commonly used for manipulating colors.
+//! Lightweight module for working with colors. The aim is to provide a wrapper for RGB color 
+//! values in a way that does not compromise performance. Colors are packed as three `u8` values to
+//! provide as lean of a memory footprint as possible. While there are also some helpers for 
+//! working with alpha values, they are not a main feature of this module.
 
 #![warn(missing_docs)]
 
-#[cfg(feature = "serde")]
+// #[cfg(feature = "serde")]
 pub mod serializers;
 pub mod html;
+mod parse;
 
 use std::fmt;
 use std::hash::Hash;
 use std::fmt::Write;
+
+/// A color containing values for red, green, blue, and alpha.
+pub type ColorWithAlpha = (Color, Alpha);
 
 type Value = u8;
 type Alpha = f32;
@@ -30,7 +36,7 @@ pub struct Color {
     pub g: Value,
 }
 
-#[cfg(feature = "serde")]
+// #[cfg(feature = "serde")]
 impl serde::Serialize for Color {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -40,34 +46,13 @@ impl serde::Serialize for Color {
     }
 }
 
-#[cfg(feature = "serde")]
+// #[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for Color {
     fn deserialize<D>(deserializer: D) -> Result<Color, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        struct ColorVisitor;
-        
-        impl<'de> serde::de::Visitor<'de> for ColorVisitor {
-            type Value = Color;
-            
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a hexadecimal or rgb color string")
-            }
-            
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                if v.starts_with("rgb") {
-                    return Color::from_rgb(v).ok_or(serde::de::Error::custom("Not a valid rgb color string."));
-                }
-                
-                v.parse::<Color>().map_err(serde::de::Error::custom)
-            }
-        }
-        
-        deserializer.deserialize_str(ColorVisitor)
+        deserializer.deserialize_any(crate::serializers::ColorVisitor)
     }
 }
 
@@ -161,7 +146,7 @@ impl Color {
     /// 
     /// assert_eq!(blended, Color::new(128, 0, 128));
     /// ```
-    pub fn blend(&self, other: Color, amount: Alpha) -> Self {
+    pub fn blend(&self, other: Color, amount: f32) -> Self {
         if amount >= 1.0 {
             return other;
         }
@@ -171,8 +156,8 @@ impl Color {
         }
         
         self.map_with(other, |a, b| {
-            let a = a as Alpha * (1.0 - amount);
-            let b = b as Alpha * amount;
+            let a = a as f32 * (1.0 - amount);
+            let b = b as f32 * amount;
             
             (a + b).round() as Value
         })
@@ -225,15 +210,8 @@ impl Color {
         } else {
             alpha
         };
-        let values = self
-            .into_iter()
-            .map(|v| v.to_string())
-            // Round alpha to 3 decimal places.
-            .chain([((alpha * 1_000.0).round() / 1_000.0).to_string()])
-            .collect::<Vec<_>>()
-            .join(",");
         
-        format!("rgba({values})")
+        format!("rgba({},{},{},{})", self.r, self.g, self.b, alpha)
     }
     
     /// Converts this color into an rgb color string.
@@ -245,13 +223,7 @@ impl Color {
     /// assert_eq!(Color::new(255, 0, 0).to_rgb(), "rgb(255,0,0)");
     /// ```
     pub fn to_rgb(&self) -> String {
-        let values = self
-            .into_iter()
-            .map(|v| v.to_string())
-            .collect::<Vec<_>>()
-            .join(",");
-        
-        format!("rgb({values})")
+        format!("rgb({},{},{})", self.r, self.g, self.b)
     }
     
     /// Attempts to parse an rgb or rgba color string into a color. Ignores the alpha value if 
@@ -266,115 +238,16 @@ impl Color {
     /// assert_eq!(color, Color::new(100, 100, 100));
     /// ````
     pub fn from_rgb(rgb: &str) -> Option<Self> {
-        let mut s = rgb;
-        let mut len = s.len();
-        let mut colors_expected = SLICE_LENGTH;
-        
-        if len > 1 && s.starts_with("rgb(") {
-            s = &s[4..len];
-            len -= 4;
-        } else if len > 1 && s.starts_with("rgba(") {
-            s = &s[5..len];
-            len -= 5;
-            colors_expected += 1;
-        } else {
-            return None;
-        }
-        
-        if len > 1 && s.ends_with(')') {
-            s = &s[..(len - 1)];
-        } else {
-            return None;
-        }
-        
-        let mut color = Color::default();
-        let mut num_colors = 0;
-        
-        for (i, c) in s.split(',').enumerate() {
-            if i >= colors_expected {
-                return None;
-            }
-            
-            match i {
-                0 => color.r = u8::from_str_radix(c.trim(), 10).ok()?,
-                1 => color.g = u8::from_str_radix(c.trim(), 10).ok()?,
-                2 => color.b = u8::from_str_radix(c.trim(), 10).ok()?,
-                // We expect the alpha to be valid if it is included
-                3 if colors_expected == 4 => if let Ok(_value) = u8::from_str_radix(c.trim(), 10) {
-                    // It's a valid u8 integer
-                } else {
-                    c.trim().parse::<Alpha>().ok()?;
-                },
-                _ => return None,
-            }
-            
-            num_colors += 1;
-        }
-        
-        // Checks if the number of colors is valid.
-        if num_colors != colors_expected {
-            return None;
-        }
-        
-        Some(color)
+        parse::rgba(rgb).map(|(colors, _alpha)| colors.into())
     }
     
-    /// Converts this color from an rgb or rgba color string.
-    pub fn from_rgba(rgb: &str) -> Option<(Self, Option<Alpha>)> {
-        let mut s = rgb;
-        let mut len = s.len();
-        let mut colors_expected = SLICE_LENGTH;
-        
-        if len > 1 && s.starts_with("rgb(") {
-            s = &s[4..len];
-            len -= 4;
-        } else if len > 1 && s.starts_with("rgba(") {
-            s = &s[5..len];
-            len -= 5;
-            colors_expected += 1;
-        } else {
-            return None;
-        }
-        
-        if len > 1 && s.ends_with(')') {
-            s = &s[..(len - 1)];
-        } else {
-            return None;
-        }
-        
-        let mut color = Color::default();
-        let mut num_colors = 0;
-        let mut alpha: Option<Alpha> = None;
-        
-        for (i, c) in s.split(',').enumerate() {
-            if i >= colors_expected {
-                return None;
-            }
-            
-            match i {
-                0 => color.r = u8::from_str_radix(c.trim(), 10).ok()?,
-                1 => color.g = u8::from_str_radix(c.trim(), 10).ok()?,
-                2 => color.b = u8::from_str_radix(c.trim(), 10).ok()?,
-                3 if colors_expected == 4 => if let Ok(value) = u8::from_str_radix(c.trim(), 10) {
-                    alpha = Some(value as f32 / Value::MAX as Alpha);
-                } else {
-                    alpha = Some(c.trim().parse::<Alpha>().ok()?);
-                }
-                _ => return None,
-            }
-            
-            num_colors += 1;
-        }
-        
-        // Checks if the number of colors is valid.
-        if num_colors != colors_expected {
-            return None;
-        }
-        
-        Some((color, alpha))
+    /// Attempts to parse an rgb or rgba color string into a color. Alpha defaults to `1.0` if not 
+    /// present.
+    pub fn from_rgba(rgb: &str) -> Option<ColorWithAlpha> {
+        parse::rgba(rgb).map(|(colors, alpha)| (colors.into(), alpha))
     }
     
-    /// Converts this color from a hexadecimal color string.
+    /// Attempts to parse a hexadecimal color string into a color.
     /// 
     /// # Examples
     /// ```
@@ -384,47 +257,17 @@ impl Color {
     /// assert_eq!(Color::from_hex("F00").unwrap(), Color::new(255, 0, 0));
     /// ```
     pub fn from_hex(hex: &str) -> Option<Self> {
-        let mut s = hex;
-        let mut len = s.len();
-        
-        if len > 1 && s.starts_with('#') {
-            s = &s[1..len];
-            len -= 1;
-        }
-        
-        if len == 3 {
-            let mut colors = [0u8; 3];
-            
-            for i in 0..SLICE_LENGTH {
-                let c = &s[i..(i + 1)];
-                let c = [c, c].concat();
-                let value = u8::from_str_radix(&c, 16).ok()?;
-                
-                colors[i] = value;
-            }
-            
-            return Some(Color::new(colors[0], colors[1], colors[2]));
-        }
-        
-        if len == 6 || len == 8 {
-            let mut colors = [0u8; 3];
-            
-            for i in 0..SLICE_LENGTH {
-                let j = i * 2;
-                let value = u8::from_str_radix(&s[j..(j + 2)], 16).ok()?;
-                
-                colors[i] = value;
-            }
-            
-            if len == 8 {
-                // Expect the alpha to be a valid value
-                u8::from_str_radix(&s[6..8], 16).ok()?;
-            }
-            
-            return Some(Color::new(colors[0], colors[1], colors[2]));
-        }
-        
-        None
+        parse::hex(hex).map(|colors| colors.into())
+    }
+    
+    /// Attempts to parse an hsl color string into a color.
+    pub fn from_hsl(hsl: &str) -> Option<Self> {
+        parse::hsl(hsl).map(|(colors, _alpha)| colors.into())
+    }
+    
+    /// Attempts to parse an hsl color string into a color with alpha.
+    pub fn from_hsla(hsl: &str) -> Option<ColorWithAlpha> {
+        parse::hsl(hsl).map(|(colors, alpha)| (colors.into(), alpha))
     }
     
     /// Converts this color into a slice.
@@ -492,7 +335,23 @@ impl std::str::FromStr for Color {
     type Err = &'static str;
     
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_hex(s).ok_or("Not a valid color string.")
+        if let Some(color) = Self::from_hex(s) {
+            return Ok(color);
+        }
+        
+        if let Some(color) = Self::from_rgb(s) {
+            return Ok(color);
+        }
+        
+        if let Some(color) = Self::from_hsl(s) {
+            return Ok(color);
+        }
+        
+        if let Some(color) = html::from_html_color_name(s) {
+            return Ok(color);
+        }
+        
+        return Err("Not a valid color string.");
     }
 }
 
@@ -606,11 +465,11 @@ mod tests {
         let (color, alpha) = Color::from_rgba("rgba(100,100,100,0.5)").unwrap();
         
         assert_eq!(color, Color::new(100, 100, 100));
-        assert_eq!(alpha, Some(0.5));
+        assert_eq!(alpha, 0.5);
         
         let (color, alpha) = Color::from_rgba("rgba(255,0,0,0.2)").unwrap();
         
         assert_eq!(color, Color::new(255, 0, 0));
-        assert_eq!(alpha, Some(0.2));
+        assert_eq!(alpha, 0.2);
     }
 }

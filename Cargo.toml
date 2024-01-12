@@ -13,10 +13,10 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = { version = "^1.0", features = ["derive"], optional = true }
+serde = { version = "^1.0", features = ["derive"] }
 
-[features]
-serde = ["dep:serde"]
+# [features]
+# serde = ["dep:serde"]
 
 [dev-dependencies]
 serde_json = "^1.0"
