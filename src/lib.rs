@@ -1,3 +1,9 @@
+//! # nice-colors
+//! 
+//! Provides a [`Color`] type that represents a color with RGB color values along with methods 
+//! commonly used for manipulating colors.
+
+#![warn(missing_docs)]
 use std::fmt;
 use std::hash::Hash;
 use std::fmt::Write;
