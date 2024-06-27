@@ -110,7 +110,12 @@ pub fn hsl(mut hsl: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
             _ => return None,
         }
         
-        i+= 1;
+        i += 1;
+    }
+    
+    // Check if the number of colors is valid.
+    if i != colors_expected {
+        return None;
     }
     
     let hue = hue?;
@@ -153,7 +158,6 @@ pub fn rgba(mut rgb: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
     }
     
     let mut colors = [0u8; 3];
-    let mut num_colors = 0;
     let mut alpha: Alpha = 1.0;
     let mut i = 0;
     
@@ -186,11 +190,10 @@ pub fn rgba(mut rgb: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
         }
         
         i += 1;
-        num_colors += 1;
     }
     
     // Check if the number of colors is valid.
-    if num_colors != colors_expected {
+    if i != colors_expected {
         return None;
     }
     
