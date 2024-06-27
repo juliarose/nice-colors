@@ -4,6 +4,7 @@ use crate::helpers::{self, conversions};
 /// Converts an HSL color string to a slice of R, G, B color values as u8 integers.
 pub fn hsl(mut hsl: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
     let mut len = hsl.len();
+    let mut colors_expected = 3;
     
     if hsl.starts_with("hsl(") {
         hsl = &hsl[4..len];
@@ -11,6 +12,7 @@ pub fn hsl(mut hsl: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
     } else if hsl.starts_with("hsla(") {
         hsl = &hsl[5..len];
         len -= 5;
+        colors_expected += 1;
     } else {
         return None;
     }
@@ -21,16 +23,54 @@ pub fn hsl(mut hsl: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
         return None;
     }
     
-    let mut iter = hsl.split(',');
-    let hue = iter.next()?.trim().parse::<u16>().ok()?;
-    let hue = (((hue as f32 % 360.0) + 360.0) % 360.0) / 360.0;
-    let saturation = helpers::parse_percent(iter.next()?)?;
-    let lightness = helpers::parse_percent(iter.next()?)?;
-    let alpha = if let Some(value) = iter.next() {
-        helpers::fit_percent(value.trim().parse::<f32>().ok()?)
-    } else {
-        1.0
-    };
+    let mut hue = None;
+    let mut saturation = None;
+    let mut lightness = None;
+    // let hue = iter.next()?.trim().parse::<u16>().ok()?;
+    // let hue = (((hue as f32 % 360.0) + 360.0) % 360.0) / 360.0;
+    // let saturation = helpers::parse_percent(iter.next()?)?;
+    // let lightness = helpers::parse_percent(iter.next()?)?;
+    let mut alpha = 1.0;
+    let mut i = 0;
+    
+    for mut c in hsl.split([',', ' ']) {
+        c = c.trim();
+        
+        // Skip empty strings
+        if c.is_empty() {
+            continue;
+        }
+        
+        if i >= colors_expected {
+            return None;
+        }
+        
+        match i {
+            0 => {
+                let parsed = c.parse::<u16>().ok()?;
+                let value = (((parsed as f32 % 360.0) + 360.0) % 360.0) / 360.0;
+                
+                hue = Some(value);
+            },
+            1 => {
+                saturation = helpers::parse_percent(c);
+            },
+            2 => {
+                lightness = helpers::parse_percent(c);
+            },
+            3 if colors_expected == 4 => {
+                alpha = helpers::fit_percent(c.parse::<f32>().ok()?);
+            },
+            // Too many colors - invalid color
+            _ => return None,
+        }
+        
+        i+= 1;
+    }
+    
+    let hue = hue?;
+    let saturation = saturation?;
+    let lightness = lightness?;
     let m2 = if lightness <= 0.5 {
         lightness * (saturation + 1.0)
     } else {
@@ -115,14 +155,27 @@ pub fn rgba(mut rgb: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
     let mut colors = [0u8; 3];
     let mut num_colors = 0;
     let mut alpha: Alpha = 1.0;
+    let mut i = 0;
     
-    for (i, c) in rgb.split(',').enumerate() {
+    for mut c in rgb.split([',', ' ']) {
+        c = c.trim();
+        
+        // Skip empty strings
+        if c.is_empty() {
+            continue;
+        }
+        
         if i >= colors_expected {
             return None;
         }
         
         match i {
-            0..=2 => colors[i] = u8::from_str_radix(c.trim(), 10).ok()?,
+            0..=2 => if c.ends_with('#') {
+                // It's a percentage.
+                colors[i] = (helpers::parse_percent(c)? * 255.0).round() as u8;
+            } else {
+                colors[i] = u8::from_str_radix(c.trim(), 10).ok()?
+            },
             3 if colors_expected == 4 => if let Ok(value) = u8::from_str_radix(c.trim(), 10) {
                 alpha = value as f32 / Value::MAX as Alpha;
             } else {
@@ -132,6 +185,7 @@ pub fn rgba(mut rgb: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
             _ => return None,
         }
         
+        i += 1;
         num_colors += 1;
     }
     
