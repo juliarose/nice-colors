@@ -31,9 +31,9 @@ pub struct Color {
     /// The red value.
     pub r: Value,
     /// The green value.
-    pub b: Value,
-    /// The blue value.
     pub g: Value,
+    /// The blue value.
+    pub b: Value,
 }
 
 #[cfg(feature = "serde")]
@@ -323,9 +323,27 @@ impl From<&DecimalValue> for Color {
     }
 }
 
+impl From<i32> for Color {
+    fn from(value: i32) -> Self {
+        Self::from_decimal(value as DecimalValue)
+    }
+}
+
+impl From<&i32> for Color {
+    fn from(value: &i32) -> Self {
+        Self::from_decimal(*value as DecimalValue)
+    }
+}
+
 impl From<Color> for DecimalValue {
     fn from(value: Color) -> Self {
         value.to_decimal()
+    }
+}
+
+impl From<Color> for i32 {
+    fn from(value: Color) -> Self {
+        value.to_decimal() as i32
     }
 }
 
@@ -419,6 +437,13 @@ mod tests {
     }
     
     #[test]
+    fn converts_from_str_800080() {
+        let color = Color::from_str("800080").unwrap();
+        
+        assert_eq!(color, Color::new(128, 0, 128));
+    }
+    
+    #[test]
     fn converts_from_str_with_pound_symbol() {
         let color = Color::from_str("#FF0000").unwrap();
         
@@ -449,7 +474,7 @@ mod tests {
     }
     
     #[test]
-    fn converts_to_i32() {
+    fn converts_to_decimal_into() {
         let color = Color::new(100, 100, 100);
         let decimal: DecimalValue = color.into();
         
