@@ -1,9 +1,14 @@
 use crate::{parse, html};
+use crate::helpers::conversions;
+use crate::HSLColor;
 use std::fmt;
 use std::hash::Hash;
 use std::fmt::Write;
 
-use crate::{Value, DecimalValue, Alpha, SLICE_LENGTH};
+pub type Value = u8;
+pub type Alpha = f32;
+pub type DecimalValue = u32;
+pub const SLICE_LENGTH: usize = 3;
 
 /// A color containing values for red, green, blue, and alpha.
 pub type ColorWithAlpha = (Color, Alpha);
@@ -49,12 +54,37 @@ impl Color {
     /// let color = Color::new();
     /// 
     /// assert_eq!(color, Color { red: 0, green: 0, blue: 0 });
+    /// ```
     pub fn new() -> Self {
         Self {
             red: 0,
             green: 0,
             blue: 0,
         }
+    }
+    
+    /// Sets the red value of this color.
+    /// 
+    /// # Examples
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// let color = Color::new().red(100);
+    /// 
+    /// assert_eq!(color, Color { red: 100, green: 0, blue: 0 });
+    /// ```
+    pub fn red(self, red: Value) -> Self {
+        Self { red, ..self }
+    }
+    
+    /// Sets the green value of this color.
+    pub fn green(self, green: Value) -> Self {
+        Self { green, ..self }
+    }
+    
+    /// Sets the blue value of this color.
+    pub fn blue(self, blue: Value) -> Self {
+        Self { blue, ..self }
     }
     
     /// Converts a decimal color value into a color.
@@ -154,6 +184,40 @@ impl Color {
         })
     }
     
+    /// Lightens this color by a given amount.
+    /// 
+    /// # Examples
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// let red = Color { red: 255, green: 0, blue: 0 };
+    /// let lightened = red.lighten(0.5);
+    /// 
+    /// assert_eq!(lightened, Color { red: 255, green: 128, blue: 128 });
+    /// ```
+    pub fn lighten(&self, amount: f32) -> Self {
+        let hsl: HSLColor = self.into();
+        
+        hsl.lightness(hsl.lightness + (amount * hsl.lightness)).into()
+    }
+    
+    /// Darkens this color by a given amount.
+    /// 
+    /// # Examples
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// let red = Color { red: 255, green: 0, blue: 0 };
+    /// let darkened = red.darken(0.5);
+    /// 
+    /// assert_eq!(darkened, Color { red: 128, green: 0, blue: 0 });
+    /// ```
+    pub fn darken(&self, mut amount: f32) -> Self {
+        amount = amount.max(0.0).min(1.0);
+        
+        self.map(|c| (c as f32 * (1.0 - amount)).round() as Value)
+    }
+    
     /// Converts this color into a decimal color value.
     /// 
     /// # Examples
@@ -174,12 +238,12 @@ impl Color {
     /// ```
     /// use nice_colors::Color;
     /// 
-    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_hex_string(), "FF0000");
+    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_hex_string(), "#FF0000");
     /// ```
     pub fn to_hex_string(&self) -> String {
         self
             .into_iter()
-            .fold(String::new(),|mut output, b| {
+            .fold(String::from('#'),|mut output, b| {
                 let _ = write!(output, "{b:02X}");
                 output
             })
@@ -338,6 +402,26 @@ impl From<&(Value, Value, Value)> for Color {
     }
 }
 
+impl From<HSLColor> for Color {
+    fn from(value: HSLColor) -> Self {
+        let (
+            red,
+            green,
+            blue,
+        ) = conversions::hsl_to_rgb(
+            value.hue,
+            value.saturation,
+            value.lightness,
+        );
+        
+        Self {
+            red,
+            green,
+            blue,
+        }
+    }
+}
+
 impl From<Color> for (Value, Value, Value) {
     fn from(value: Color) -> Self {
         (value.red, value.green, value.blue)
@@ -435,14 +519,14 @@ mod tests {
     fn converts_to_string() {
         let red = Color { red: 255, green: 0, blue: 0 };
         
-        assert_eq!(red.to_string(), "FF0000");
+        assert_eq!(red.to_string(), "#FF0000");
     }
     
     #[test]
     fn converts_to_hex() {
         let red = Color { red: 255, green: 0, blue: 0 };
         
-        assert_eq!(red.to_hex_string(), "FF0000");
+        assert_eq!(red.to_hex_string(), "#FF0000");
     }
     
     #[test]

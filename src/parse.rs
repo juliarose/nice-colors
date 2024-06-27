@@ -1,4 +1,4 @@
-use crate::{SLICE_LENGTH, Alpha, Value};
+use crate::color::{SLICE_LENGTH, Alpha, Value};
 use crate::helpers::{self, conversions};
 
 /// Converts an HSL color string to a slice of R, G, B color values as u8 integers.

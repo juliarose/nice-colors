@@ -12,13 +12,9 @@ pub mod serializers;
 pub mod html;
 
 pub(crate) mod helpers;
+pub(crate) mod color;
+pub(crate) mod hsl_color;
 mod parse;
-mod color;
-
-pub(crate) type Value = u8;
-pub(crate) type Alpha = f32;
-pub(crate) type DecimalValue = u32;
-
-pub(crate) const SLICE_LENGTH: usize = 3;
 
 pub use color::{Color, ColorWithAlpha};
+pub use hsl_color::HSLColor;

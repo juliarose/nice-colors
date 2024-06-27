@@ -1,4 +1,4 @@
-use crate::Value;
+use crate::color::Value;
 
 /// Removes a suffix from a string if it exists. Returns `None` if the suffix does not exist.
 pub fn remove_suffix<'a>(
@@ -16,13 +16,7 @@ pub fn remove_suffix<'a>(
 
 /// Fits a percentage into the range of 0.0 to 1.0.
 pub fn fit_percent(value: f32) -> f32 {
-    if value < 0.0 {
-        0.0
-    } else if value > 1.0 {
-        1.0
-    } else {
-        value
-    }
+    value.max(0.0).min(1.0)
 }
 
 /// Parses a percentage value from a string.
@@ -50,24 +44,24 @@ pub mod conversions {
     use super::*;
     
     /// Converts a hue to RGB.
-    pub fn hue_to_rgb(m1: f32, m2: f32, mut h: f32) -> f32 {
+    pub fn hue_to_rgb(m1: f32, m2: f32, mut hue: f32) -> f32 {
         // Sourced from: https://github.com/7thSigil/css-color-parser-rs/blob/v0.1.2/src/color/color.rs#L366
-        if h < 0.0 {
-            h += 1.0;
-        } else if h > 1.0 {
-            h -= 1.0;
+        if hue < 0.0 {
+            hue += 1.0;
+        } else if hue > 1.0 {
+            hue -= 1.0;
         }
         
-        if h * 6.0 < 1.0 {
-            return m1 + (m2 - m1) * h * 6.0;
+        if hue < 1.0 / 6.0 {
+            return m1 + (m2 - m1) * hue * 6.0;
         }
         
-        if h * 2.0 < 1.0 {
+        if hue < 1.0 / 2.0 {
             return m2;
         }
         
-        if h * 3.0 < 2.0 {
-            return m1 + (m2 - m1) * (2.0 / 3.0 - h) * 6.0;
+        if hue < 2.0 / 3.0 {
+            return m1 + (m2 - m1) * (2.0 / 3.0 - hue) * 6.0;
         }
         
         return m1;
@@ -113,8 +107,30 @@ pub mod conversions {
         
         (hue * 360.0, saturation, lightness)
     }
+    
+    pub fn hsl_to_rgb(
+        mut hue: f32,
+        mut saturation: f32,
+        mut lightness: f32,
+    ) -> (Value, Value, Value) {
+        hue = hue.max(0.0).min(360.0);
+        hue = hue / 360.0;
+        saturation = fit_percent(saturation);
+        lightness = fit_percent(lightness);
+        
+        let m2 = if lightness <= 0.5 {
+            lightness * (saturation + 1.0)
+        } else {
+            lightness + saturation - lightness * saturation
+        };
+        let m1 = lightness * 2.0 - m2;
+        let r = float_to_value(hue_to_rgb(m1, m2, hue + 1.0 / 3.0) * 255.0);
+        let g = float_to_value(hue_to_rgb(m1, m2, hue) * 255.0);
+        let b = float_to_value(hue_to_rgb(m1, m2, hue - 1.0 / 3.0) * 255.0);
+        
+        (r, g, b)
+    }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -136,5 +152,29 @@ mod tests {
         assert_eq!(hue, 240.0);
         assert_eq!(saturation, 1.0);
         assert_eq!(lightness, 0.9);
+    }
+    
+    #[test]
+    fn converts_hsl_to_rgb() {
+        let (r, g, b) = conversions::hsl_to_rgb(0.0, 1.0, 0.5);
+        
+        assert_eq!(r, 255);
+        assert_eq!(g, 0);
+        assert_eq!(b, 0);
+        
+        let (h, s, l) = conversions::rgb_to_hsl(r, g, b);
+        
+        assert_eq!(h, 0.0);
+        assert_eq!(s, 1.0);
+        assert_eq!(l, 0.5);
+    }
+    
+    #[test]
+    fn converts_hsl_to_rgb_2() {
+        let (r, g, b) = conversions::hsl_to_rgb(340.0, 0.5, 0.5);
+        
+        assert_eq!(r, 191);
+        assert_eq!(g, 64);
+        assert_eq!(b, 106);
     }
 }
