@@ -10,7 +10,7 @@ struct Fruit {
 
 fn main() {
     let apple = Fruit {
-        color: Color::new(255, 0, 0),
+        color: Color { red: 255, green: 0, blue: 0 },
     };
     
     let json = serde_json::to_string(&apple).unwrap();

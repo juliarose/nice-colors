@@ -292,18 +292,18 @@ mod tests {
     
     #[test]
     fn test_hex_serialize() {
-        let color = Color::new(255, 0, 0);
+        let color = Color { red: 255, green: 0, blue: 0 };
         let serialized = serde_json::to_string(&color).unwrap();
         
         assert_eq!(serialized, "\"#FF0000\"");
         
         let color = serde_json::from_str::<Color>(&serialized).unwrap();
         
-        assert_eq!(color, Color::new(255, 0, 0));
+        assert_eq!(color, Color { red: 255, green: 0, blue: 0 });
         
         let color = serde_json::from_str::<Color>("\"rgba(255,0,0,0.5)\"").unwrap();
         
-        assert_eq!(color, Color::new(255, 0, 0));
+        assert_eq!(color, Color { red: 255, green: 0, blue: 0 });
     }
     
     #[test]
@@ -325,12 +325,12 @@ mod tests {
         }
         
         let s = serde_json::to_string(&Colors {
-            hex: Color::new(255, 0, 0),
-            rgb: Color::new(255, 0, 0),
-            rgba: (Color::new(255, 0, 0), 0.5),
-            hex_option: Some(Color::new(255, 0, 0)),
-            rgb_option: Some(Color::new(255, 0, 0)),
-            rgba_option: Some((Color::new(255, 0, 0), 0.5)),
+            hex: Color { red: 255, green: 0, blue: 0 },
+            rgb: Color { red: 255, green: 0, blue: 0 },
+            rgba: (Color { red: 255, green: 0, blue: 0 }, 0.5),
+            hex_option: Some(Color { red: 255, green: 0, blue: 0 }),
+            rgb_option: Some(Color { red: 255, green: 0, blue: 0 }),
+            rgba_option: Some((Color { red: 255, green: 0, blue: 0 }, 0.5)),
         }).unwrap();
         
         assert_eq!(s, "{\"hex\":\"#FF0000\",\"rgb\":\"rgb(255,0,0)\",\"rgba\":\"rgba(255,0,0,0.5)\",\"hex_option\":\"#FF0000\",\"rgb_option\":\"rgb(255,0,0)\",\"rgba_option\":\"rgba(255,0,0,0.5)\"}");
