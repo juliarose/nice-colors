@@ -30,7 +30,7 @@ impl serde::Serialize for Color {
     where
         S: serde::Serializer,
     {
-        serializer.collect_str(&format!("#{}", self.to_hex_string()))
+        serializer.collect_str(&self.to_hex_string())
     }
 }
 
@@ -114,11 +114,11 @@ impl Color {
     /// use nice_colors::Color;
     /// 
     /// let red = Color { red: 255, green: 0, blue: 0 };
-    /// let mapped = red.map(|c| c / 2);
+    /// let mapped = red.map_each(|c| c / 2);
     /// 
     /// assert_eq!(mapped, Color { red: 127, green: 0, blue: 0 });
     /// ```
-    pub fn map<F>(&self, f: F) -> Self
+    pub fn map_each<F>(&self, f: F) -> Self
     where
         F: Fn(Value) -> Value,
     {
@@ -127,6 +127,30 @@ impl Color {
         mapped.red = f(self.red);
         mapped.green = f(self.green);
         mapped.blue = f(self.blue);
+        mapped
+    }
+    
+    /// Maps each value in this color with another color.
+    /// 
+    /// # Examples
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// let red = Color { red: 255, green: 0, blue: 0 };
+    /// let blue = Color { red: 0, green: 0, blue: 255 };
+    /// let mapped = red.map_each_with(blue, |a, b| std::cmp::max(a, b));
+    /// 
+    /// assert_eq!(mapped, Color { red: 255, green: 0, blue: 255 });
+    /// ```
+    pub fn map_each_with<F>(&self, other: Self, f: F) -> Self
+    where
+        F: Fn(Value, Value) -> Value,
+    {
+        let mut mapped = Color::default();
+        
+        mapped.red = f(self.red, other.red);
+        mapped.green = f(self.green, other.green);
+        mapped.blue = f(self.blue, other.blue);
         mapped
     }
     
@@ -147,6 +171,25 @@ impl Color {
         hsl.lightness(hsl.lightness + (amount * hsl.lightness)).into()
     }
     
+    /// Saturates this color by a given amount.
+    pub fn saturate(&self, amount: f32) -> Self {
+        let hsl: HSLColor = self.into();
+        
+        hsl.saturation(hsl.saturation + (amount * hsl.saturation)).into()
+    }
+    
+    /// Desaturates this color by a given amount.
+    pub fn desaturate(&self, amount: f32) -> Self {
+        let hsl: HSLColor = self.into();
+        
+        hsl.saturation(hsl.saturation - (amount * hsl.saturation)).into()
+    }
+    
+    /// Rotates the hue of this color by a given amount.
+    pub fn rotate_hue(&self, amount: f32) -> Self {
+        HSLColor::from(self).rotate_hue(amount).into()
+    }
+    
     /// Darkens this color by a given amount.
     /// 
     /// # Examples
@@ -161,31 +204,7 @@ impl Color {
     pub fn darken(&self, mut amount: f32) -> Self {
         amount = amount.max(0.0).min(1.0);
         
-        self.map(|c| (c as f32 * (1.0 - amount)).round() as Value)
-    }
-    
-    /// Maps each value in this color with another color.
-    /// 
-    /// # Examples
-    /// ```
-    /// use nice_colors::Color;
-    /// 
-    /// let red = Color { red: 255, green: 0, blue: 0 };
-    /// let blue = Color { red: 0, green: 0, blue: 255 };
-    /// let mapped = red.map_with(blue, |a, b| std::cmp::max(a, b));
-    /// 
-    /// assert_eq!(mapped, Color { red: 255, green: 0, blue: 255 });
-    /// ```
-    pub fn map_with<F>(&self, other: Self, f: F) -> Self
-    where
-        F: Fn(Value, Value) -> Value,
-    {
-        let mut mapped = Color::default();
-        
-        mapped.red = f(self.red, other.red);
-        mapped.green = f(self.green, other.green);
-        mapped.blue = f(self.blue, other.blue);
-        mapped
+        self.map_each(|c| (c as f32 * (1.0 - amount)).round() as Value)
     }
     
     /// Blends two colors.
@@ -210,7 +229,7 @@ impl Color {
             return *self;
         }
         
-        self.map_with(other, |a, b| {
+        self.map_each_with(other, |a, b| {
             let a = a as f32 * (1.0 - amount);
             let b = b as f32 * amount;
             
@@ -255,7 +274,7 @@ impl Color {
     /// ```
     /// use nice_colors::Color;
     /// 
-    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_rgba_string(0.5), "rgba(255,0,0,0.5)");
+    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_rgba_string(0.5), "rgba(255 0 0 0.5)");
     /// ```
     pub fn to_rgba_string(&self, alpha: Alpha) -> String {
         let alpha = if alpha > 1.0 {
@@ -266,7 +285,7 @@ impl Color {
             alpha
         };
         
-        format!("rgba({},{},{},{})", self.red, self.green, self.blue, alpha)
+        format!("rgba({} {} {} {})", self.red, self.green, self.blue, alpha)
     }
     
     /// Converts this color into an rgb color string.
@@ -275,10 +294,10 @@ impl Color {
     /// ```
     /// use nice_colors::Color;
     /// 
-    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_rgb_string(), "rgb(255,0,0)");
+    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_rgb_string(), "rgb(255 0 0)");
     /// ```
     pub fn to_rgb_string(&self) -> String {
-        format!("rgb({},{},{})", self.red, self.green, self.blue)
+        format!("rgb({} {} {})", self.red, self.green, self.blue)
     }
     
     /// Attempts to parse an rgb or rgba color string into a color. Ignores the alpha value if 
@@ -288,7 +307,7 @@ impl Color {
     /// ```
     /// use nice_colors::Color;
     /// 
-    /// let color = Color::from_rgb_str("rgb(100,100,100)").unwrap();
+    /// let color = Color::from_rgb_str("rgb(100 100 100)").unwrap();
     /// 
     /// assert_eq!(color, Color { red: 100, green: 100, blue: 100 });
     /// ````
@@ -533,7 +552,7 @@ mod tests {
     fn converts_to_rgb() {
         let red = Color { red: 255, green: 0, blue: 0 };
         
-        assert_eq!(red.to_rgb_string(), "rgb(255,0,0)");
+        assert_eq!(red.to_rgb_string(), "rgb(255 0 0)");
     }
     
     #[test]
@@ -621,27 +640,27 @@ mod tests {
     
     #[test]
     fn converts_from_rgb() {
-        let color = Color::from_rgb_str("rgb(100,100,100)").unwrap();
+        let color = Color::from_rgb_str("rgb(100 100 100)").unwrap();
         
         assert_eq!(color, Color { red: 100, green: 100, blue: 100 });
         
-        let color = Color::from_rgb_str("rgb( 100, 100, 100 )").unwrap();
+        let color = Color::from_rgb_str("rgb( 100 100 100 )").unwrap();
         
         assert_eq!(color, Color { red: 100, green: 100, blue: 100 });
         
-        let color = Color::from_rgb_str("rgba( 100, 100, 100, 1.0 )").unwrap();
+        let color = Color::from_rgb_str("rgba( 100 100 100 1.0 )").unwrap();
         
         assert_eq!(color, Color { red: 100, green: 100, blue: 100 });
     }
     
     #[test]
     fn converts_from_rgba() {
-        let (color, alpha) = Color::from_rgba_str("rgba(100,100,100,0.5)").unwrap();
+        let (color, alpha) = Color::from_rgba_str("rgba(100 100 100 0.5)").unwrap();
         
         assert_eq!(color, Color { red: 100, green: 100, blue: 100 });
         assert_eq!(alpha, 0.5);
         
-        let (color, alpha) = Color::from_rgba_str("rgba(255,0,0,0.2)").unwrap();
+        let (color, alpha) = Color::from_rgba_str("rgba(255 0 0 0.2)").unwrap();
         
         assert_eq!(color, Color { red: 255, green: 0, blue: 0 });
         assert_eq!(alpha, 0.2);

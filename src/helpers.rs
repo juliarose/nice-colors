@@ -21,10 +21,18 @@ pub fn fit_percent(value: f32) -> f32 {
 
 /// Parses a percentage value from a string.
 pub fn parse_percent(s: &str) -> Option<f32> {
-    let value = remove_suffix(s.trim(), "%")?.parse::<f32>().ok()?;
-    let percent = fit_percent(value / 100.0);
+    if s.ends_with('%') {
+        let value = remove_suffix(s.trim(), "%")?.parse::<f32>().ok()?;
+        let percent = fit_percent(value / 100.0);
+        
+        return Some(percent);
+    } else if s.starts_with("0.") || s.starts_with('.') {
+        let percent = fit_percent(s.parse::<f32>().ok()?);
+        
+        return Some(percent);
+    }
     
-    Some(percent)
+    None
 }
 
 /// Converts a floating point value to a u8 integer.

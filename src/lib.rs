@@ -11,9 +11,9 @@
 pub mod serializers;
 pub mod html;
 
-pub(crate) mod helpers;
-pub(crate) mod color;
-pub(crate) mod hsl_color;
+mod helpers;
+mod color;
+mod hsl_color;
 mod parse;
 
 pub use color::{Color, ColorWithAlpha};

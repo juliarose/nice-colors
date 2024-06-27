@@ -2,16 +2,14 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use nice_colors::Color;
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("parses FF0000", |b| b.iter(||
-        Color::from_hex_str("FF0000")
+    let color = Color { red: 255, blue: 0, green: 0 };
+    
+    c.bench_function("Darkens color", |b| b.iter(||
+        color.darken(0.5)
     ));
     
-    c.bench_function("parses #FF0000", |b| b.iter(||
-        Color::from_hex_str("#FF0000")
-    ));
-    
-    c.bench_function("parses rgb(255, 0, 0)", |b| b.iter(||
-        Color::from_rgb_str("rgb(255, 0, 0)")
+    c.bench_function("Lightens color", |b| b.iter(||
+        color.lighten(0.5)
     ));
 }
 

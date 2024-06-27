@@ -82,10 +82,6 @@ pub fn hsl(mut hsl: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
             continue;
         }
         
-        if i >= colors_expected {
-            return None;
-        }
-        
         match i {
             0 => {
                 let parsed = c.parse::<u16>().ok()?;
@@ -100,7 +96,7 @@ pub fn hsl(mut hsl: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
                 lightness = helpers::parse_percent(c);
             },
             3 if colors_expected == 4 => {
-                alpha = helpers::fit_percent(c.parse::<f32>().ok()?);
+                alpha = helpers::parse_percent(c)?;
             },
             // Too many colors - invalid color
             _ => return None,
@@ -163,10 +159,6 @@ pub fn rgba(mut rgb: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
         // Skip empty strings
         if c.is_empty() {
             continue;
-        }
-        
-        if i >= colors_expected {
-            return None;
         }
         
         match i {

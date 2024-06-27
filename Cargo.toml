@@ -30,3 +30,7 @@ required-features = ["serde"]
 [[bench]]
 name = "parse"
 harness = false
+
+[[bench]]
+name = "manipulation"
+harness = false

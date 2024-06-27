@@ -18,8 +18,8 @@ assert_eq!(
     Color { red: 128, green: 0, blue: 128 },
 );
 assert_eq!(blended.to_hex_string(), "#800080");
-assert_eq!(blended.to_rgb_string(), "rgb(128,0,128)");
-assert_eq!(blended.to_rgba_string(0.5), "rgba(128,0,128,0.5)");
+assert_eq!(blended.to_rgb_string(), "rgb(128 0 128)");
+assert_eq!(blended.to_rgba_string(0.5), "rgba(128 0 128 0.5)");
 assert_eq!(
     Color::from(0xFF0000),
     Color{ red: 255, green: 0, blue: 0 },

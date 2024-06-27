@@ -301,7 +301,7 @@ mod tests {
         
         assert_eq!(color, Color { red: 255, green: 0, blue: 0 });
         
-        let color = serde_json::from_str::<Color>("\"rgba(255,0,0,0.5)\"").unwrap();
+        let color = serde_json::from_str::<Color>("\"rgba(255 0 0 0.5)\"").unwrap();
         
         assert_eq!(color, Color { red: 255, green: 0, blue: 0 });
     }
@@ -333,6 +333,6 @@ mod tests {
             rgba_option: Some((Color { red: 255, green: 0, blue: 0 }, 0.5)),
         }).unwrap();
         
-        assert_eq!(s, "{\"hex\":\"#FF0000\",\"rgb\":\"rgb(255,0,0)\",\"rgba\":\"rgba(255,0,0,0.5)\",\"hex_option\":\"#FF0000\",\"rgb_option\":\"rgb(255,0,0)\",\"rgba_option\":\"rgba(255,0,0,0.5)\"}");
+        assert_eq!(s, "{\"hex\":\"#FF0000\",\"rgb\":\"rgb(255 0 0)\",\"rgba\":\"rgba(255 0 0 0.5)\",\"hex_option\":\"#FF0000\",\"rgb_option\":\"rgb(255 0 0)\",\"rgba_option\":\"rgba(255 0 0 0.5)\"}");
     }
 }

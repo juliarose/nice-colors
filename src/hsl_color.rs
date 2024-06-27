@@ -43,6 +43,19 @@ impl HSLColor {
         Self { hue, ..self }
     }
     
+    /// Rotates the hue value by a specified amount.
+    pub fn rotate_hue(self, mut hue: f32) -> Self {
+        if self.hue + hue > 360.0 {
+            hue = self.hue + hue - 360.0;
+        } else if self.hue + hue < 0.0 {
+            hue = self.hue + hue + 360.0;
+        } else {
+            hue = self.hue + hue;
+        }
+        
+        Self { hue, ..self }
+    }
+    
     /// Sets the saturation value.
     /// 
     /// The saturation value is a float between 0.0 and 1.0:
@@ -89,5 +102,22 @@ impl From<Color> for HSLColor {
 impl From<&Color> for HSLColor {
     fn from(color: &Color) -> Self {
         Self::from(*color)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn rotates_hue() {
+        let color = HSLColor {
+            hue: 10.0,
+            saturation: 0.5,
+            lightness: 0.5,
+        };
+        let color = color.rotate_hue(180.0);
+        
+        assert_eq!(color.hue, 190.0);
     }
 }
