@@ -75,27 +75,26 @@ mod helpers {
 }
 
 /// Converts an HSL color string to a slice of R, G, B color values as u8 integers.
-pub fn hsl(hsl: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
-    let mut s = hsl;
-    let mut len = s.len();
+pub fn hsl(mut hsl: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
+    let mut len = hsl.len();
     
-    if s.starts_with("hsl(") {
-        s = &s[4..len];
+    if hsl.starts_with("hsl(") {
+        hsl = &hsl[4..len];
         len -= 4;
-    } else if s.starts_with("hsla(") {
-        s = &s[5..len];
+    } else if hsl.starts_with("hsla(") {
+        hsl = &hsl[5..len];
         len -= 5;
     } else {
         return None;
     }
     
-    if s.ends_with(')') {
-        s = &s[..(len - 1)];
+    if hsl.ends_with(')') {
+        hsl = &hsl[..(len - 1)];
     } else {
         return None;
     }
     
-    let mut iter = s.split(',');
+    let mut iter = hsl.split(',');
     let hue = iter.next()?.trim().parse::<u16>().ok()?;
     let hue = (((hue as f32 % 360.0) + 360.0) % 360.0) / 360.0;
     let saturation = helpers::parse_percent(iter.next()?)?;
@@ -163,24 +162,23 @@ pub fn hex(mut hex: &str) -> Option<[u8; SLICE_LENGTH]> {
 
 /// Attempts to parse an rgb or rgba color string into a color. Alpha value defaults to `1.0` if 
 /// not present.
-pub fn rgba(rgb: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
-    let mut s = rgb;
-    let mut len = s.len();
+pub fn rgba(mut rgb: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
+    let mut len = rgb.len();
     let mut colors_expected = SLICE_LENGTH;
     
-    if s.starts_with("rgb(") {
-        s = &s[4..len];
+    if rgb.starts_with("rgb(") {
+        rgb = &rgb[4..len];
         len -= 4;
-    } else if s.starts_with("rgba(") {
-        s = &s[5..len];
+    } else if rgb.starts_with("rgba(") {
+        rgb = &rgb[5..len];
         len -= 5;
         colors_expected += 1;
     } else {
         return None;
     }
     
-    if s.ends_with(')') {
-        s = &s[..(len - 1)];
+    if rgb.ends_with(')') {
+        rgb = &rgb[..(len - 1)];
     } else {
         return None;
     }
@@ -189,7 +187,7 @@ pub fn rgba(rgb: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
     let mut num_colors = 0;
     let mut alpha: Alpha = 1.0;
     
-    for (i, c) in s.split(',').enumerate() {
+    for (i, c) in rgb.split(',').enumerate() {
         if i >= colors_expected {
             return None;
         }
