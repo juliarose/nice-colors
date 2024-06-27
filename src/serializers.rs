@@ -65,7 +65,7 @@ impl<'de> de::Visitor<'de> for ColorAlphaVisitor {
     type Value = ColorWithAlpha;
     
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a hexadecimal color string or none")
+        formatter.write_str("A hexadecimal color string or none")
     }
     
     /// Deserializes from a color string.
@@ -287,7 +287,8 @@ pub mod rgba_option {
 
 #[cfg(test)]
 mod tests {
-    use crate::Color;
+    use super::*;
+    use serde::{Deserialize, Serialize};
     
     #[test]
     fn test_hex_serialize() {
