@@ -6,7 +6,7 @@ used for manipulating, formatting, and parsing colors.
 ## Usage
 
 ```rust
-use nice_colors::Color;
+use nice_colors::{HSLColor, Color};
 
 let red = Color { red: 255, green: 0, blue: 0 };
 let blue = Color { red: 0, green: 0, blue: 255 };
@@ -17,9 +17,18 @@ assert_eq!(
     blended,
     Color { red: 128, green: 0, blue: 128 },
 );
-assert_eq!(blended.to_hex_string(), "#800080");
-assert_eq!(blended.to_rgb_string(), "rgb(128 0 128)");
-assert_eq!(blended.to_rgba_string(0.5), "rgba(128 0 128 0.5)");
+assert_eq!(
+    blended.to_hex_string(),
+    "#800080",
+);
+assert_eq!(
+    blended.to_rgb_string(),
+    "rgb(128 0 128)",
+);
+assert_eq!(
+    blended.to_rgba_string(0.5),
+    "rgba(128 0 128 0.5)",
+);
 assert_eq!(
     Color::from(0xFF0000),
     Color{ red: 255, green: 0, blue: 0 },
@@ -31,6 +40,10 @@ assert_eq!(
 assert_eq!(
     Color::from_hex_str("#F00").unwrap(),
     Color { red: 255, green: 0, blue: 0 },
+);
+assert_eq!(
+    HSLColor::from(red),
+    HSLColor { hue: 0.0, saturation: 1.0, lightness: 0.5 },
 );
 ```
 
