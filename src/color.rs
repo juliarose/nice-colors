@@ -25,7 +25,7 @@ impl serde::Serialize for Color {
     where
         S: serde::Serializer,
     {
-        serializer.collect_str(&format!("#{}", self.to_hex()))
+        serializer.collect_str(&format!("#{}", self.to_hex_string()))
     }
 }
 
@@ -174,9 +174,9 @@ impl Color {
     /// ```
     /// use nice_colors::Color;
     /// 
-    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_hex(), "FF0000");
+    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_hex_string(), "FF0000");
     /// ```
-    pub fn to_hex(&self) -> String {
+    pub fn to_hex_string(&self) -> String {
         self
             .into_iter()
             .fold(String::new(),|mut output, b| {
@@ -191,9 +191,9 @@ impl Color {
     /// ```
     /// use nice_colors::Color;
     /// 
-    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_rgba(0.5), "rgba(255,0,0,0.5)");
+    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_rgba_string(0.5), "rgba(255,0,0,0.5)");
     /// ```
-    pub fn to_rgba(&self, alpha: Alpha) -> String {
+    pub fn to_rgba_string(&self, alpha: Alpha) -> String {
         let alpha = if alpha > 1.0 {
             1.0
         } else if alpha < 0.0 {
@@ -211,9 +211,9 @@ impl Color {
     /// ```
     /// use nice_colors::Color;
     /// 
-    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_rgb(), "rgb(255,0,0)");
+    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_rgb_string(), "rgb(255,0,0)");
     /// ```
-    pub fn to_rgb(&self) -> String {
+    pub fn to_rgb_string(&self) -> String {
         format!("rgb({},{},{})", self.red, self.green, self.blue)
     }
     
@@ -224,45 +224,50 @@ impl Color {
     /// ```
     /// use nice_colors::Color;
     /// 
-    /// let color = Color::from_rgb("rgb(100,100,100)").unwrap();
+    /// let color = Color::from_rgb_str("rgb(100,100,100)").unwrap();
     /// 
     /// assert_eq!(color, Color { red: 100, green: 100, blue: 100 });
     /// ````
-    pub fn from_rgb(rgb: &str) -> Option<Self> {
+    pub fn from_rgb_str(rgb: &str) -> Option<Self> {
         parse::rgba(rgb).map(|(colors, _alpha)| colors.into())
     }
     
     /// Attempts to parse an rgb or rgba color string into a color. Alpha defaults to `1.0` if not 
     /// present.
-    pub fn from_rgba(rgb: &str) -> Option<ColorWithAlpha> {
+    pub fn from_rgba_str(rgb: &str) -> Option<ColorWithAlpha> {
         parse::rgba(rgb).map(|(colors, alpha)| (colors.into(), alpha))
     }
     
-    /// Attempts to parse a hexadecimal color string into a color.
+    /// Attempts to parse a hexadecimal color string into a color. Since this is explicitly 
+    /// converting from a hexadecimal string, the hash symbol is optional.
+    /// 
+    /// However if you try converting a string using [`std::std::FromStr`], the hash symbol is 
+    /// required.
     /// 
     /// # Examples
     /// ```
     /// use nice_colors::Color;
     /// 
-    /// assert_eq!(Color::from_hex("FF0000").unwrap(), Color { red: 255, green: 0, blue: 0 });
-    /// assert_eq!(Color::from_hex("F00").unwrap(), Color { red: 255, green: 0, blue: 0 });
+    /// assert_eq!(Color::from_hex_str("FF0000").unwrap(), Color { red: 255, green: 0, blue: 0 });
+    /// assert_eq!(Color::from_hex_str("#FF0000").unwrap(), Color { red: 255, green: 0, blue: 0 });
+    /// assert_eq!(Color::from_hex_str("F00").unwrap(), Color { red: 255, green: 0, blue: 0 });
     /// ```
-    pub fn from_hex(hex: &str) -> Option<Self> {
-        parse::hex(hex).map(|colors| colors.into())
+    pub fn from_hex_str(hex: &str) -> Option<Self> {
+        parse::hex(hex, false).map(|colors| colors.into())
     }
     
     /// Attempts to parse an hsl color string into a color.
-    pub fn from_hsl(hsl: &str) -> Option<Self> {
+    pub fn from_hsl_str(hsl: &str) -> Option<Self> {
         parse::hsl(hsl).map(|(colors, _alpha)| colors.into())
     }
     
     /// Attempts to parse an hsl color string into a color with alpha.
-    pub fn from_hsla(hsl: &str) -> Option<ColorWithAlpha> {
+    pub fn from_hsla_str(hsl: &str) -> Option<ColorWithAlpha> {
         parse::hsl(hsl).map(|(colors, alpha)| (colors.into(), alpha))
     }
     
-    /// Converts this color into a slice.
-    pub fn to_bytes(&self) -> [Value; SLICE_LENGTH] {
+    /// Converts this color into an array.
+    pub fn to_array(&self) -> [Value; SLICE_LENGTH] {
         [
             self.red,
             self.green,
@@ -270,13 +275,8 @@ impl Color {
         ]
     }
     
-    /// Converts the inner slice of this color into a vector.
-    pub fn to_vec(&self) -> Vec<Value> {
-        self.to_bytes().to_vec()
-    }
-    
     /// Converts a slice into a color.
-    pub fn from_slice(slice: [Value; SLICE_LENGTH]) -> Self {
+    fn from_slice(slice: [Value; SLICE_LENGTH]) -> Self {
         Self {
             red: slice[0],
             green: slice[1],
@@ -290,7 +290,7 @@ impl IntoIterator for Color {
     type IntoIter = std::array::IntoIter<Value, SLICE_LENGTH>;
     
     fn into_iter(self) -> Self::IntoIter {
-        IntoIterator::into_iter(self.to_bytes())
+        IntoIterator::into_iter(self.to_array())
     }
 }
 
@@ -303,6 +303,50 @@ impl From<[Value; SLICE_LENGTH]> for Color {
 impl From<&[Value; SLICE_LENGTH]> for Color {
     fn from(value: &[Value; SLICE_LENGTH]) -> Self {
         Self::from(*value)
+    }
+}
+
+impl Into<[Value; SLICE_LENGTH]> for Color {
+    fn into(self) -> [Value; SLICE_LENGTH] {
+        self.to_array()
+    }
+}
+
+impl Into<[Value; SLICE_LENGTH]> for &Color {
+    fn into(self) -> [Value; SLICE_LENGTH] {
+        self.to_array()
+    }
+}
+
+impl From<(Value, Value, Value)> for Color {
+    fn from(value: (Value, Value, Value)) -> Self {
+        Self {
+            red: value.0,
+            green: value.1,
+            blue: value.2,
+        }
+    }
+}
+
+impl From<&(Value, Value, Value)> for Color {
+    fn from(value: &(Value, Value, Value)) -> Self {
+        Self {
+            red: value.0,
+            green: value.1,
+            blue: value.2,
+        }
+    }
+}
+
+impl From<Color> for (Value, Value, Value) {
+    fn from(value: Color) -> Self {
+        (value.red, value.green, value.blue)
+    }
+}
+
+impl From<&Color> for (Value, Value, Value) {
+    fn from(value: &Color) -> Self {
+        (value.red, value.green, value.blue)
     }
 }
 
@@ -326,7 +370,7 @@ impl From<i32> for Color {
 
 impl From<&i32> for Color {
     fn from(value: &i32) -> Self {
-        Self::from_decimal(*value as DecimalValue)
+        Self::from(*value)
     }
 }
 
@@ -344,7 +388,7 @@ impl From<Color> for i32 {
 
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_hex())
+        write!(f, "{}", self.to_hex_string())
     }
 }
 
@@ -352,15 +396,15 @@ impl std::str::FromStr for Color {
     type Err = &'static str;
     
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some(color) = Self::from_hex(s) {
+        if let Some(color) = parse::hex(s, true).map(|colors| colors.into()) {
             return Ok(color);
         }
         
-        if let Some(color) = Self::from_rgb(s) {
+        if let Some(color) = Self::from_rgb_str(s) {
             return Ok(color);
         }
         
-        if let Some(color) = Self::from_hsl(s) {
+        if let Some(color) = Self::from_hsl_str(s) {
             return Ok(color);
         }
         
@@ -375,7 +419,6 @@ impl std::str::FromStr for Color {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::str::FromStr;
     
     #[test]
     fn blends() {
@@ -399,22 +442,22 @@ mod tests {
     fn converts_to_hex() {
         let red = Color { red: 255, green: 0, blue: 0 };
         
-        assert_eq!(red.to_hex(), "FF0000");
+        assert_eq!(red.to_hex_string(), "FF0000");
     }
     
     #[test]
     fn converts_to_rgb() {
         let red = Color { red: 255, green: 0, blue: 0 };
         
-        assert_eq!(red.to_rgb(), "rgb(255,0,0)");
+        assert_eq!(red.to_rgb_string(), "rgb(255,0,0)");
     }
     
     #[test]
     fn converts_from_hex() {
         let red = Color { red: 255, green: 0, blue: 0 };
             
-        assert_eq!(Color::from_hex("FF0000").unwrap(), red);
-        assert_eq!(Color::from_hex("F00").unwrap(), red);
+        assert_eq!(Color::from_hex_str("FF0000").unwrap(), red);
+        assert_eq!(Color::from_hex_str("F00").unwrap(), red);
     }
     
     #[test]
@@ -425,24 +468,22 @@ mod tests {
     }
     
     #[test]
+    fn converts_from_str_errors_when_hash_symbol_is_not_present() {
+        assert!("FF0000".parse::<Color>().is_err());
+    }
+    
+    #[test]
     fn converts_from_str() {
-        let color = Color::from_str("FF0000").unwrap();
+        let color = "#FF0000".parse::<Color>().unwrap();
         
         assert_eq!(color, Color { red: 255, green: 0, blue: 0 });
     }
     
     #[test]
     fn converts_from_str_800080() {
-        let color = Color::from_str("800080").unwrap();
+        let color = "#800080".parse::<Color>().unwrap();
         
         assert_eq!(color, Color { red: 128, green: 0, blue: 128 });
-    }
-    
-    #[test]
-    fn converts_from_str_with_pound_symbol() {
-        let color = Color::from_str("#FF0000").unwrap();
-        
-        assert_eq!(color, Color { red: 255, green: 0, blue: 0 });
     }
     
     #[test]
@@ -496,27 +537,27 @@ mod tests {
     
     #[test]
     fn converts_from_rgb() {
-        let color = Color::from_rgb("rgb(100,100,100)").unwrap();
+        let color = Color::from_rgb_str("rgb(100,100,100)").unwrap();
         
         assert_eq!(color, Color { red: 100, green: 100, blue: 100 });
         
-        let color = Color::from_rgb("rgb( 100, 100, 100 )").unwrap();
+        let color = Color::from_rgb_str("rgb( 100, 100, 100 )").unwrap();
         
         assert_eq!(color, Color { red: 100, green: 100, blue: 100 });
         
-        let color = Color::from_rgb("rgba( 100, 100, 100, 1.0 )").unwrap();
+        let color = Color::from_rgb_str("rgba( 100, 100, 100, 1.0 )").unwrap();
         
         assert_eq!(color, Color { red: 100, green: 100, blue: 100 });
     }
     
     #[test]
     fn converts_from_rgba() {
-        let (color, alpha) = Color::from_rgba("rgba(100,100,100,0.5)").unwrap();
+        let (color, alpha) = Color::from_rgba_str("rgba(100,100,100,0.5)").unwrap();
         
         assert_eq!(color, Color { red: 100, green: 100, blue: 100 });
         assert_eq!(alpha, 0.5);
         
-        let (color, alpha) = Color::from_rgba("rgba(255,0,0,0.2)").unwrap();
+        let (color, alpha) = Color::from_rgba_str("rgba(255,0,0,0.2)").unwrap();
         
         assert_eq!(color, Color { red: 255, green: 0, blue: 0 });
         assert_eq!(alpha, 0.2);

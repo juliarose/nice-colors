@@ -46,70 +46,75 @@ pub fn float_to_value(mut value: f32) -> Value {
     }
 }
 
-/// Converts a hue to RGB.
-pub fn hue_to_rgb(m1: f32, m2: f32, mut h: f32) -> f32 {
-    // Sourced from: https://github.com/7thSigil/css-color-parser-rs/blob/v0.1.2/src/color/color.rs#L366
-    if h < 0.0 {
-        h += 1.0;
-    } else if h > 1.0 {
-        h -= 1.0;
+pub mod conversions {
+    use super::*;
+    
+    /// Converts a hue to RGB.
+    pub fn hue_to_rgb(m1: f32, m2: f32, mut h: f32) -> f32 {
+        // Sourced from: https://github.com/7thSigil/css-color-parser-rs/blob/v0.1.2/src/color/color.rs#L366
+        if h < 0.0 {
+            h += 1.0;
+        } else if h > 1.0 {
+            h -= 1.0;
+        }
+        
+        if h * 6.0 < 1.0 {
+            return m1 + (m2 - m1) * h * 6.0;
+        }
+        
+        if h * 2.0 < 1.0 {
+            return m2;
+        }
+        
+        if h * 3.0 < 2.0 {
+            return m1 + (m2 - m1) * (2.0 / 3.0 - h) * 6.0;
+        }
+        
+        return m1;
     }
     
-    if h * 6.0 < 1.0 {
-        return m1 + (m2 - m1) * h * 6.0;
+    /// Converts an rgb color to HSL
+    pub fn rgb_to_hsl(
+        r: Value,
+        g: Value,
+        b: Value,
+    ) -> (f32, f32, f32) {
+        let r = r as f32 / 255.0;
+        let g = g as f32 / 255.0;
+        let b = b as f32 / 255.0;
+        let max = r.max(g).max(b);
+        let min = r.min(g).min(b);
+        let mut hue = (max + min) / 2.0;
+        #[allow(unused_assignments)]
+        let mut saturation = hue;
+        let lightness = hue;
+        
+        if max == min {
+            hue = 0.0;
+            saturation = 0.0;
+        } else {
+            let difference = max - min;
+            
+            saturation = if lightness > 0.5 {
+                difference / (2.0 - max - min)
+            } else {
+                difference / (max + min)
+            };
+            
+            hue = if max == r {
+                (g - b) / difference + if g < b { 6.0 } else { 0.0 }
+            } else if max == g {
+                (b - r) / difference + 2.0
+            } else {
+                (r - g) / difference + 4.0
+            };
+            hue = hue / 6.0;
+        }
+        
+        (hue * 360.0, saturation, lightness)
     }
-    
-    if h * 2.0 < 1.0 {
-        return m2;
-    }
-    
-    if h * 3.0 < 2.0 {
-        return m1 + (m2 - m1) * (2.0 / 3.0 - h) * 6.0;
-    }
-    
-    return m1;
 }
 
-/// Covnerts an rgb color to HSL
-pub fn rgb_to_hsl(
-    r: Value,
-    g: Value,
-    b: Value,
-) -> (f32, f32, f32) {
-    let r = r as f32 / 255.0;
-    let g = g as f32 / 255.0;
-    let b = b as f32 / 255.0;
-    let max = r.max(g).max(b);
-    let min = r.min(g).min(b);
-    let mut hue = (max + min) / 2.0;
-    #[allow(unused_assignments)]
-    let mut saturation = hue;
-    let lightness = hue;
-    
-    if max == min {
-        hue = 0.0;
-        saturation = 0.0;
-    } else {
-        let difference = max - min;
-        
-        saturation = if lightness > 0.5 {
-            difference / (2.0 - max - min)
-        } else {
-            difference / (max + min)
-        };
-        
-        hue = if max == r {
-            (g - b) / difference + if g < b { 6.0 } else { 0.0 }
-        } else if max == g {
-            (b - r) / difference + 2.0
-        } else {
-            (r - g) / difference + 4.0
-        };
-        hue = hue / 6.0;
-    }
-    
-    (hue * 360.0, saturation, lightness)
-}
 
 #[cfg(test)]
 mod tests {
@@ -117,7 +122,7 @@ mod tests {
     
     #[test]
     fn converts_rgb_to_hsl() {
-        let (hue, saturation, lightness) = rgb_to_hsl(255, 0, 0);
+        let (hue, saturation, lightness) = conversions::rgb_to_hsl(255, 0, 0);
         
         assert_eq!(hue, 0.0);
         assert_eq!(saturation, 1.0);
@@ -126,7 +131,7 @@ mod tests {
     
     #[test]
     fn converts_rgb_to_hsl_periwinkle() {
-        let (hue, saturation, lightness) = rgb_to_hsl(204, 204, 255);
+        let (hue, saturation, lightness) = conversions::rgb_to_hsl(204, 204, 255);
         
         assert_eq!(hue, 240.0);
         assert_eq!(saturation, 1.0);

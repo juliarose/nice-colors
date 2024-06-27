@@ -3,11 +3,11 @@ use nice_colors::Color;
 
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("parses FF0000", |b| b.iter(||
-        Color::from_hex("FF0000")
+        Color::from_hex_str("FF0000")
     ));
     
     c.bench_function("parses #FF0000", |b| b.iter(||
-        Color::from_hex("#FF0000")
+        Color::from_hex_str("#FF0000")
     ));
 }
 

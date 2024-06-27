@@ -74,7 +74,7 @@ impl<'de> de::Visitor<'de> for ColorAlphaVisitor {
         E: de::Error,
     {
         if v.starts_with("rgb") {
-            let (color, alpha) = Color::from_rgba(v)
+            let (color, alpha) = Color::from_rgba_str(v)
                 .ok_or(serde::de::Error::custom("Not a valid rgb color string."))?;
             
             return Ok((color, alpha));
@@ -133,7 +133,7 @@ pub mod hex {
     where
         S: Serializer,
     {
-        serializer.collect_str(&format!("#{}", value.to_hex()))
+        serializer.collect_str(&format!("#{}", value.to_hex_string()))
     }
     
     /// Deserializes a color from a hex string.
@@ -158,7 +158,7 @@ pub mod hex_option {
         S: Serializer,
     {
         if let Some(value) = value {
-            serializer.collect_str(&format!("#{}", value.to_hex()))
+            serializer.collect_str(&format!("#{}", value.to_hex_string()))
         } else {
             serializer.serialize_none()
         }
@@ -185,7 +185,7 @@ pub mod rgb {
     where
         S: Serializer,
     {
-        serializer.collect_str(&format!("{}", value.to_rgb()))
+        serializer.collect_str(&format!("{}", value.to_rgb_string()))
     }
     
     /// Deserializes a color from an rgb string.
@@ -210,7 +210,7 @@ pub mod rgb_option {
         S: Serializer,
     {
         if let Some(value) = value {
-            serializer.collect_str(&format!("{}", value.to_rgb()))
+            serializer.collect_str(&format!("{}", value.to_rgb_string()))
         } else {
             serializer.serialize_none()
         }
@@ -238,9 +238,9 @@ pub mod rgba {
         S: Serializer,
     {
         if value.1 <= 1.0 {
-            serializer.collect_str(&format!("{}", value.0.to_rgba(value.1)))
+            serializer.collect_str(&format!("{}", value.0.to_rgba_string(value.1)))
         } else {
-            serializer.collect_str(&format!("{}", value.0.to_rgb()))
+            serializer.collect_str(&format!("{}", value.0.to_rgb_string()))
         }
     }
     
@@ -267,9 +267,9 @@ pub mod rgba_option {
     {
         if let Some(value) = value {
             if value.1 <= 1.0 {
-                serializer.collect_str(&format!("{}", value.0.to_rgba(value.1)))
+                serializer.collect_str(&format!("{}", value.0.to_rgba_string(value.1)))
             } else {
-                serializer.collect_str(&format!("{}", value.0.to_rgb()))
+                serializer.collect_str(&format!("{}", value.0.to_rgb_string()))
             }
         } else {
             serializer.serialize_none()

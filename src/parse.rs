@@ -1,5 +1,5 @@
 use crate::{SLICE_LENGTH, Alpha, Value};
-use crate::helpers;
+use crate::helpers::{self, conversions};
 
 /// Converts an HSL color string to a slice of R, G, B color values as u8 integers.
 pub fn hsl(mut hsl: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
@@ -37,20 +37,22 @@ pub fn hsl(mut hsl: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
         lightness + saturation - lightness * saturation
     };
     let m1 = lightness * 2.0 - m2;
-    let r = helpers::float_to_value(helpers::hue_to_rgb(m1, m2, hue + 1.0 / 3.0) * 255.0);
-    let g = helpers::float_to_value(helpers::hue_to_rgb(m1, m2, hue) * 255.0);
-    let b = helpers::float_to_value(helpers::hue_to_rgb(m1, m2, hue - 1.0 / 3.0) * 255.0);
+    let r = helpers::float_to_value(conversions::hue_to_rgb(m1, m2, hue + 1.0 / 3.0) * 255.0);
+    let g = helpers::float_to_value(conversions::hue_to_rgb(m1, m2, hue) * 255.0);
+    let b = helpers::float_to_value(conversions::hue_to_rgb(m1, m2, hue - 1.0 / 3.0) * 255.0);
     
     Some(([r, g, b], alpha))
 }
 
 /// Attempts to parse a hexadecimal color string into a color.
-pub fn hex(mut hex: &str) -> Option<[u8; SLICE_LENGTH]> {
+pub fn hex(mut hex: &str, must_include_hash: bool) -> Option<[u8; SLICE_LENGTH]> {
     let mut len = hex.len();
     
     if hex.starts_with('#') {
         hex = &hex[1..len];
         len -= 1;
+    } else if must_include_hash {
+        return None;
     }
     
     if !matches!(len, 3 | 4 | 6 | 8) {
