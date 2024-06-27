@@ -469,6 +469,10 @@ mod tests {
         let color = Color::from(0xFF0000);
         
         assert_eq!(color, Color::new(255, 0, 0));
+        
+        let color = Color::from_decimal(0xFF0000);
+        
+        assert_eq!(color, Color::new(255, 0, 0));
     }
     
     #[test]
