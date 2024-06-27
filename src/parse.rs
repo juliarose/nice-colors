@@ -71,10 +71,6 @@ pub fn hsl(mut hsl: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
     let mut hue = None;
     let mut saturation = None;
     let mut lightness = None;
-    // let hue = iter.next()?.trim().parse::<u16>().ok()?;
-    // let hue = (((hue as f32 % 360.0) + 360.0) % 360.0) / 360.0;
-    // let saturation = helpers::parse_percent(iter.next()?)?;
-    // let lightness = helpers::parse_percent(iter.next()?)?;
     let mut alpha = 1.0;
     let mut i = 0;
     
@@ -174,11 +170,20 @@ pub fn rgba(mut rgb: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
         }
         
         match i {
-            0..=2 => if c.ends_with('#') {
+            0..=2 => if c.ends_with('%') {
                 // It's a percentage.
                 colors[i] = (helpers::parse_percent(c)? * 255.0).round() as u8;
+            } else if c.starts_with('-') {
+                // Remove the negative sign.
+                c = &c[1..];
+                // See if it's a number.
+                c.parse::<u32>().ok()?;
+                // Negative numbers 
+                colors[i] = 0;
             } else {
-                colors[i] = u8::from_str_radix(c.trim(), 10).ok()?
+                // Numbers over 255 are acceptable.
+                // Casting to u8 will truncate the value.
+                colors[i] = u32::from_str_radix(c.trim(), 10).ok()? as u8;
             },
             3 if colors_expected == 4 => if let Ok(value) = u8::from_str_radix(c.trim(), 10) {
                 alpha = value as f32 / Value::MAX as Alpha;
@@ -217,5 +222,6 @@ mod tests {
     fn parses_hsl() {
         assert_eq!(hsl("hsl(0, 100%, 50%)"), Some(([255, 0, 0], 1.0)));
         assert_eq!(hsl("hsl(120, 100%, 50%)"), Some(([0, 255, 0], 1.0)));
+        assert_eq!(hsl("hsl(0 100% 50%)"), Some(([255, 0, 0], 1.0)));
     }
 }
