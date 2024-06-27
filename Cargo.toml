@@ -7,7 +7,7 @@ authors = ["Julia"]
 homepage = "https://github.com/juliarose/nice-colors"
 repository = "https://github.com/juliarose/nice-colors"
 license = "MIT"
-keywords = ["color", "css", "hexadecimal"]
+keywords = ["css", "color", "parser", "hexadecimal", "hsl", "rgb"]
 readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

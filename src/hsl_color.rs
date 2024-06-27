@@ -4,11 +4,11 @@ use crate::helpers::conversions;
 /// A color containing values for hue, saturation, and lightness.
 #[derive(Debug, Clone, Copy, PartialEq, Default, PartialOrd)]
 pub struct HSLColor {
-    /// The hue value.
+    /// The hue value (0.0 to 360.0).
     pub hue: f32,
-    /// The saturation value.
+    /// The saturation value (0.0 to 1.0).
     pub saturation: f32,
-    /// The lightness value.
+    /// The lightness value (0.0 to 1.0).
     pub lightness: f32,
 }
 
@@ -20,7 +20,9 @@ impl HSLColor {
     
     /// Sets the hue value.
     /// 
-    /// The hue value is a float between 0.0 and 360.0.
+    /// The hue value is a float between 0.0 and 360.0:
+    /// - If the value is less than 0.0, it will be set to 0.0.
+    /// - If the value is greater than 360.0, it will be set to 360.0.
     /// 
     /// # Example
     /// ```
@@ -42,6 +44,10 @@ impl HSLColor {
     }
     
     /// Sets the saturation value.
+    /// 
+    /// The saturation value is a float between 0.0 and 1.0:
+    /// - If the value is less than 0.0, it will be set to 0.0.
+    /// - If the value is greater than 1.0, it will be set to 1.0.
     pub fn saturation(self, mut saturation: f32) -> Self {
         saturation = saturation.max(0.0).min(1.0);
         
@@ -49,6 +55,10 @@ impl HSLColor {
     }
     
     /// Sets the lightness value.
+    /// 
+    /// The lightness value is a float between 0.0 and 1.0:
+    /// - If the value is less than 0.0, it will be set to 0.0.
+    /// - If the value is greater than 1.0, it will be set to 1.0.
     pub fn lightness(self, mut lightness: f32) -> Self {
         lightness = lightness.max(0.0).min(1.0);
         

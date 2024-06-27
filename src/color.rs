@@ -130,6 +130,40 @@ impl Color {
         mapped
     }
     
+    /// Lightens this color by a given amount.
+    /// 
+    /// # Examples
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// let red = Color { red: 255, green: 0, blue: 0 };
+    /// let lightened = red.lighten(0.5);
+    /// 
+    /// assert_eq!(lightened, Color { red: 255, green: 128, blue: 128 });
+    /// ```
+    pub fn lighten(&self, amount: f32) -> Self {
+        let hsl: HSLColor = self.into();
+        
+        hsl.lightness(hsl.lightness + (amount * hsl.lightness)).into()
+    }
+    
+    /// Darkens this color by a given amount.
+    /// 
+    /// # Examples
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// let red = Color { red: 255, green: 0, blue: 0 };
+    /// let darkened = red.darken(0.5);
+    /// 
+    /// assert_eq!(darkened, Color { red: 128, green: 0, blue: 0 });
+    /// ```
+    pub fn darken(&self, mut amount: f32) -> Self {
+        amount = amount.max(0.0).min(1.0);
+        
+        self.map(|c| (c as f32 * (1.0 - amount)).round() as Value)
+    }
+    
     /// Maps each value in this color with another color.
     /// 
     /// # Examples
@@ -182,40 +216,6 @@ impl Color {
             
             (a + b).round() as Value
         })
-    }
-    
-    /// Lightens this color by a given amount.
-    /// 
-    /// # Examples
-    /// ```
-    /// use nice_colors::Color;
-    /// 
-    /// let red = Color { red: 255, green: 0, blue: 0 };
-    /// let lightened = red.lighten(0.5);
-    /// 
-    /// assert_eq!(lightened, Color { red: 255, green: 128, blue: 128 });
-    /// ```
-    pub fn lighten(&self, amount: f32) -> Self {
-        let hsl: HSLColor = self.into();
-        
-        hsl.lightness(hsl.lightness + (amount * hsl.lightness)).into()
-    }
-    
-    /// Darkens this color by a given amount.
-    /// 
-    /// # Examples
-    /// ```
-    /// use nice_colors::Color;
-    /// 
-    /// let red = Color { red: 255, green: 0, blue: 0 };
-    /// let darkened = red.darken(0.5);
-    /// 
-    /// assert_eq!(darkened, Color { red: 128, green: 0, blue: 0 });
-    /// ```
-    pub fn darken(&self, mut amount: f32) -> Self {
-        amount = amount.max(0.0).min(1.0);
-        
-        self.map(|c| (c as f32 * (1.0 - amount)).round() as Value)
     }
     
     /// Converts this color into a decimal color value.
