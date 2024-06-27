@@ -17,6 +17,7 @@ assert_eq!(blended, Color::new(128, 0, 128));
 assert_eq!(blended.to_hex(), "800080");
 assert_eq!(blended.to_rgb(), "rgb(128,0,128)");
 assert_eq!(Color::from_hex("800080").unwrap(), Color::new(128, 0, 128));
+assert_eq!(Color::from_hex("#800080").unwrap(), Color::new(128, 0, 128));
 assert_eq!(Color::from_hex("F00").unwrap(), Color::new(255, 0, 0));
 ```
 

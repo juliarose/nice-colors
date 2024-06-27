@@ -19,11 +19,11 @@ use std::fmt::Write;
 /// A color containing values for red, green, blue, and alpha.
 pub type ColorWithAlpha = (Color, Alpha);
 
-type Value = u8;
-type Alpha = f32;
-type DecimalValue = i32;
+pub(crate) type Value = u8;
+pub(crate) type Alpha = f32;
+pub(crate) type DecimalValue = u32;
 
-const SLICE_LENGTH: usize = 3;
+pub(crate) const SLICE_LENGTH: usize = 3;
 
 /// A color containing values for red, green, and blue.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default, Ord, PartialOrd, Hash)]
@@ -58,7 +58,11 @@ impl<'de> serde::Deserialize<'de> for Color {
 
 impl Color {
     /// Creates a new [`Color`].
-    pub fn new(r: Value, g: Value, b: Value) -> Self {
+    pub fn new(
+        r: Value,
+        g: Value,
+        b: Value,
+    ) -> Self {
         Self {
             r,
             g,
@@ -174,7 +178,7 @@ impl Color {
     /// assert_eq!(color.to_decimal(), 6579300);
     /// ```
     pub fn to_decimal(&self) -> DecimalValue {
-        i32::from_le_bytes([self.r, self.g, self.b, 0])
+        DecimalValue::from_le_bytes([self.r, self.g, self.b, 0])
     }
     
     /// Converts this color into a hexadecimal color string.
@@ -415,6 +419,13 @@ mod tests {
     }
     
     #[test]
+    fn converts_from_str_with_pound_symbol() {
+        let color = Color::from_str("#FF0000").unwrap();
+        
+        assert_eq!(color, Color::new(255, 0, 0));
+    }
+    
+    #[test]
     fn converts_to_decimal() {
         let color = Color::new(100, 100, 100);
         
@@ -440,7 +451,7 @@ mod tests {
     #[test]
     fn converts_to_i32() {
         let color = Color::new(100, 100, 100);
-        let decimal: i32 = color.into();
+        let decimal: DecimalValue = color.into();
         
         assert_eq!(decimal, 6579300);
     }

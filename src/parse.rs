@@ -79,17 +79,17 @@ pub fn hsl(hsl: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
     let mut s = hsl;
     let mut len = s.len();
     
-    if len > 1 && s.starts_with("hsl(") {
+    if s.starts_with("hsl(") {
         s = &s[4..len];
         len -= 4;
-    } else if len > 1 && s.starts_with("hsla(") {
+    } else if s.starts_with("hsla(") {
         s = &s[5..len];
         len -= 5;
     } else {
         return None;
     }
     
-    if len > 1 && s.ends_with(')') {
+    if s.ends_with(')') {
         s = &s[..(len - 1)];
     } else {
         return None;
@@ -119,48 +119,46 @@ pub fn hsl(hsl: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
 }
 
 /// Attempts to parse a hexadecimal color string into a color.
-pub fn hex(hex: &str) -> Option<[u8; SLICE_LENGTH]> {
-    let mut s = hex;
-    let mut len = s.len();
+pub fn hex(mut hex: &str) -> Option<[u8; SLICE_LENGTH]> {
+    let mut len = hex.len();
     
-    if len > 1 && s.starts_with('#') {
-        s = &s[1..len];
+    if hex.starts_with('#') {
+        hex = &hex[1..len];
         len -= 1;
     }
     
-    if len == 3 {
-        let mut colors = [0u8; SLICE_LENGTH];
-        
-        for i in 0..SLICE_LENGTH {
-            let c = &s[i..(i + 1)];
-            let c = [c, c].concat();
-            let value = u8::from_str_radix(&c, 16).ok()?;
-            
-            colors[i] = value;
-        }
-        
-        return Some(colors);
+    if !matches!(len, 3 | 4 | 6 | 8) {
+        return None;
     }
     
-    if len == 6 || len == 8 {
-        let mut colors = [0u8; SLICE_LENGTH];
-        
-        for i in 0..SLICE_LENGTH {
-            let j = i * 2;
-            let value = u8::from_str_radix(&s[j..(j + 2)], 16).ok()?;
-            
-            colors[i] = value;
-        }
-        
-        if len == 8 {
-            // Expect the alpha to be a valid value
-            u8::from_str_radix(&s[6..8], 16).ok()?;
-        }
-        
-        return Some(colors);
-    }
+    let decimal = u32::from_str_radix(hex, 16).ok()?;
     
-    None
+    return match len {
+        3 => Some([
+            (((decimal >> 8) & 0xF) * 0x11) as Value, // Red
+            (((decimal >> 4) & 0xF) * 0x11) as Value, // Green
+            ((decimal & 0xF) * 0x11) as Value, // Blue
+        ]),
+        4 => Some([
+            (((decimal >> 12) & 0xF) * 0x11) as Value, // Red
+            (((decimal >> 8) & 0xF) * 0x11) as Value, // Green
+            (((decimal >> 4) & 0xF) * 0x11) as Value, // Blue
+            // Skip alpha
+        ]),
+        6 => Some([
+            ((decimal >> 16) & 0xFF) as Value, // Red
+            ((decimal >> 8) & 0xFF) as Value, // Green
+            (decimal & 0xFF) as Value, // Blue
+        ]),
+        8 => Some([
+            ((decimal >> 24) & 0xFF) as Value, // Red
+            ((decimal >> 16) & 0xFF) as Value, // Green
+            ((decimal >> 8) & 0xFF) as Value, // Blue
+            // Skip alpha
+        ]),
+        // Never actually reached with the "matches" check above
+        _ => None,
+    };
 }
 
 /// Attempts to parse an rgb or rgba color string into a color. Alpha value defaults to `1.0` if 
@@ -170,10 +168,10 @@ pub fn rgba(rgb: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
     let mut len = s.len();
     let mut colors_expected = SLICE_LENGTH;
     
-    if len > 1 && s.starts_with("rgb(") {
+    if s.starts_with("rgb(") {
         s = &s[4..len];
         len -= 4;
-    } else if len > 1 && s.starts_with("rgba(") {
+    } else if s.starts_with("rgba(") {
         s = &s[5..len];
         len -= 5;
         colors_expected += 1;
@@ -181,7 +179,7 @@ pub fn rgba(rgb: &str) -> Option<([u8; SLICE_LENGTH], Alpha)> {
         return None;
     }
     
-    if len > 1 && s.ends_with(')') {
+    if s.ends_with(')') {
         s = &s[..(len - 1)];
     } else {
         return None;
