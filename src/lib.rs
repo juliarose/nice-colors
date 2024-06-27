@@ -81,12 +81,12 @@ impl Color {
     /// assert_eq!(color, Color::new(100, 100, 100));
     /// ```
     pub fn from_decimal(decimal: DecimalValue) -> Self {
-        let bytes = decimal.to_le_bytes();
+        let bytes = decimal.to_be_bytes();
         
         Self {
-            r: bytes[0],
-            g: bytes[1],
-            b: bytes[2],
+            r: bytes[1],
+            g: bytes[2],
+            b: bytes[3],
         }
     }
     
@@ -462,6 +462,20 @@ mod tests {
         let color = Color::from_decimal(6579300);
         
         assert_eq!(color, Color::new(100, 100, 100));
+    }
+    
+    #[test]
+    fn converts_from_hex_color() {
+        let color = Color::from(0xFF0000);
+        
+        assert_eq!(color, Color::new(255, 0, 0));
+    }
+    
+    #[test]
+    fn converts_from_hex_color_0x112233() {
+        let color = Color::from(0x112233);
+        
+        assert_eq!(color, Color::new(17, 34, 51));
     }
     
     #[test]
