@@ -133,7 +133,7 @@ pub mod hex {
     where
         S: Serializer,
     {
-        serializer.collect_str(&format!("#{}", value.to_hex_string()))
+        serializer.collect_str(&format!("{}", value.to_hex_string()))
     }
     
     /// Deserializes a color from a hex string.
@@ -158,7 +158,7 @@ pub mod hex_option {
         S: Serializer,
     {
         if let Some(value) = value {
-            serializer.collect_str(&format!("#{}", value.to_hex_string()))
+            serializer.collect_str(&format!("{}", value.to_hex_string()))
         } else {
             serializer.serialize_none()
         }

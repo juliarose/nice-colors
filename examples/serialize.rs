@@ -22,4 +22,6 @@ fn main() {
     
     let apple: Fruit = serde_json::from_str(&json).unwrap();
     println!("{:?}", apple);
+    
+    println!("{}", Color { red: 255, green: 0, blue: 0 }.to_hsl_string());
 }
