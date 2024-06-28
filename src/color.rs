@@ -1,5 +1,5 @@
 use crate::{parse, html};
-use crate::helpers::conversions;
+use crate::helpers::{self, conversions};
 use crate::HSLColor;
 use std::fmt;
 use std::hash::Hash;
@@ -85,26 +85,6 @@ impl Color {
     /// Sets the blue value of this color.
     pub fn blue(self, blue: Value) -> Self {
         Self { blue, ..self }
-    }
-    
-    /// Converts a decimal color value into a color.
-    /// 
-    /// # Examples
-    /// ```
-    /// use nice_colors::Color;
-    /// 
-    /// let color = Color::from_decimal(6579300);
-    /// 
-    /// assert_eq!(color, Color { red: 100, green: 100, blue: 100 });
-    /// ```
-    pub fn from_decimal(decimal: DecimalValue) -> Self {
-        let bytes = decimal.to_be_bytes();
-        
-        Self {
-            red: bytes[1],
-            green: bytes[2],
-            blue: bytes[3],
-        }
     }
     
     /// Maps each value in this color.
@@ -268,26 +248,6 @@ impl Color {
             })
     }
     
-    /// Converts this color into an rgba color string.
-    /// 
-    /// # Examples
-    /// ```
-    /// use nice_colors::Color;
-    /// 
-    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_rgba_string(0.5), "rgba(255 0 0 0.5)");
-    /// ```
-    pub fn to_rgba_string(&self, alpha: Alpha) -> String {
-        let alpha = if alpha > 1.0 {
-            1.0
-        } else if alpha < 0.0 {
-            0.0
-        } else {
-            alpha
-        };
-        
-        format!("rgba({} {} {} {})", self.red, self.green, self.blue, alpha)
-    }
-    
     /// Converts this color into an rgb color string.
     /// 
     /// # Examples
@@ -298,6 +258,97 @@ impl Color {
     /// ```
     pub fn to_rgb_string(&self) -> String {
         format!("rgb({} {} {})", self.red, self.green, self.blue)
+    }
+    
+    /// Converts this color into an rgba color string.
+    /// 
+    /// # Examples
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_rgba_string(0.5), "rgba(255 0 0 0.5)");
+    /// ```
+    pub fn to_rgba_string(&self, mut alpha: Alpha) -> String {
+        alpha = alpha.max(0.0).min(1.0);
+        
+        format!("rgba({} {} {} {})", self.red, self.green, self.blue, alpha)
+    }
+    
+    /// Converts this color into an hsl color string.
+    /// 
+    /// # Examples
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// assert_eq!(Color { red: 255, green: 0, blue: 0 }.to_hsl_string(), "hsl(0 100% 50%)");
+    /// ```
+    pub fn to_hsl_string(&self) -> String {
+        let hsl: HSLColor = self.into();
+        let hue = hsl.hue.round() as i32;
+        let saturation = helpers::float_to_percent(hsl.saturation);
+        let lightness = helpers::float_to_percent(hsl.lightness);
+        
+        format!("hsl({hue} {saturation}% {lightness}%)")
+    }
+    
+    /// Converts this color into an hsla color string.
+    /// 
+    /// # Examples
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// assert_eq!(
+    ///     Color { red: 255, green: 0, blue: 0 }.to_hsla_string(0.5),
+    ///     "hsla(0 100% 50% 0.5)",
+    /// );
+    /// ```
+    pub fn to_hsla_string(&self, mut alpha: Alpha) -> String {
+        alpha = alpha.max(0.0).min(1.0);
+        
+        let hsl: HSLColor = self.into();
+        let hue = hsl.hue.round() as i32;
+        let saturation = helpers::float_to_percent(hsl.saturation);
+        let lightness = helpers::float_to_percent(hsl.lightness);
+        
+        format!("hsla({hue} {saturation}% {lightness}% {alpha})")
+    }
+    
+    /// Converts a decimal color value into a color.
+    /// 
+    /// # Examples
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// let color = Color::from_decimal(6579300);
+    /// 
+    /// assert_eq!(color, Color { red: 100, green: 100, blue: 100 });
+    /// ```
+    pub fn from_decimal(decimal: DecimalValue) -> Self {
+        let bytes = decimal.to_be_bytes();
+        
+        Self {
+            red: bytes[1],
+            green: bytes[2],
+            blue: bytes[3],
+        }
+    }
+    
+    /// Attempts to parse a hexadecimal color string into a color. Since this is explicitly 
+    /// converting from a hexadecimal string, the hash symbol is optional.
+    /// 
+    /// However if you try converting a string using [`std::std::FromStr`], the hash symbol is 
+    /// required.
+    /// 
+    /// # Examples
+    /// ```
+    /// use nice_colors::Color;
+    /// 
+    /// assert_eq!(Color::from_hex_str("FF0000").unwrap(), Color { red: 255, green: 0, blue: 0 });
+    /// assert_eq!(Color::from_hex_str("#FF0000").unwrap(), Color { red: 255, green: 0, blue: 0 });
+    /// assert_eq!(Color::from_hex_str("F00").unwrap(), Color { red: 255, green: 0, blue: 0 });
+    /// ```
+    pub fn from_hex_str(hex: &str) -> Option<Self> {
+        parse::hex(hex, false).map(|colors| colors.into())
     }
     
     /// Attempts to parse an rgb or rgba color string into a color. Ignores the alpha value if 
@@ -319,24 +370,6 @@ impl Color {
     /// present.
     pub fn from_rgba_str(rgb: &str) -> Option<ColorWithAlpha> {
         parse::rgba(rgb).map(|(colors, alpha)| (colors.into(), alpha))
-    }
-    
-    /// Attempts to parse a hexadecimal color string into a color. Since this is explicitly 
-    /// converting from a hexadecimal string, the hash symbol is optional.
-    /// 
-    /// However if you try converting a string using [`std::std::FromStr`], the hash symbol is 
-    /// required.
-    /// 
-    /// # Examples
-    /// ```
-    /// use nice_colors::Color;
-    /// 
-    /// assert_eq!(Color::from_hex_str("FF0000").unwrap(), Color { red: 255, green: 0, blue: 0 });
-    /// assert_eq!(Color::from_hex_str("#FF0000").unwrap(), Color { red: 255, green: 0, blue: 0 });
-    /// assert_eq!(Color::from_hex_str("F00").unwrap(), Color { red: 255, green: 0, blue: 0 });
-    /// ```
-    pub fn from_hex_str(hex: &str) -> Option<Self> {
-        parse::hex(hex, false).map(|colors| colors.into())
     }
     
     /// Attempts to parse an hsl color string into a color.

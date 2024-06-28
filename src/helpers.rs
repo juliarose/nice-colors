@@ -35,6 +35,11 @@ pub fn parse_percent(s: &str) -> Option<f32> {
     None
 }
 
+/// Converts a floating point value to a percentage string.
+pub fn float_to_percent(value: f32) -> i32 {
+    (value * 100.0).round() as i32
+}
+
 /// Converts a floating point value to a u8 integer.
 pub fn float_to_value(mut value: f32) -> Value {
     value = value.round();
